@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "LT02 Jaký typ karabiny lze použít pro slanění pomocí polovičního lodního uzlu", answers: [
+{ id: "A", text: "typ HMS", correct: true },
+{ id: "B", text: "typ MMS", correct: false },
+{ id: "C", text: "všechny typy", correct: false }
+]},
+{ id: 2, question: "LT02 Pokud dojde k potřísnění lana neznámou chemikálií je nutné", answers: [
+{ id: "A", text: "lano vyřadit", correct: true },
+{ id: "B", text: "lano vyprat v mýdlové vodě a vysušit", correct: false },
+{ id: "C", text: "používat se zvýšenou opatrností", correct: false }
+]},
+{ id: 3, question: "LT03 Lze použít záchrannou horolezeckou kladku a horolezecké lano k vyproštění havarovaného vozidla", answers: [
+{ id: "A", text: "ne", correct: true },
+{ id: "B", text: "ano", correct: false },
+{ id: "C", text: "pouze po promazání lana speciálním mazivem Mazut", correct: false }
+]},
+{ id: 4, question: "LT05 Kotevní bod", answers: [
+{ id: "A", text: "musí odolat maximálnímu zatížení předpokládané činnosti. Pokud nemůže být vytvořen jedním kotvením, je potřeba propojit několik jistících bodů", correct: true },
+{ id: "B", text: "musí být vždy označen červenou barvou (barva, fáborek, vlaječka, kousek látky)", correct: false },
+{ id: "C", text: "může vytvořit pouze lezec instruktor. Lezec smí kotevní bod vytvořit pouze pod dozorem instruktora", correct: false }
+]},
+{ id: 5, question: "LT05 Kotevní body v přírodě", answers: [
+{ id: "A", text: "tvoříme nejčastěji omotáním lana („lanovice“) o stromy, skalní hroty, vklíněné balvany. K vytvoření kotevního bodu využíváme prostřední omotání, aby byl co nejméně zatěžován uzel lanovice", correct: true },
+{ id: "B", text: "tvoříme nejčastěji z nekonečných plochých smyček, které se vážou na zdrh", correct: false },
+{ id: "C", text: "tvoříme nejčastěji z ocelových kotvících smyček, které jsou k tomuto účelu předurčeny", correct: false }
+]},
+{ id: 6, question: "LT06 Jaká je doporučená rychlost při slaňování", answers: [
+{ id: "A", text: "do 2,5 m/s", correct: true },
+{ id: "B", text: "do 2,5 m/min", correct: false },
+{ id: "C", text: "do 7,5 m/s", correct: false }
+]},
+{ id: 7, question: "LT06 Slaňování je", answers: [
+{ id: "A", text: "činnost, která umožňuje bezpečný sestup po laně při použití vhodných prostředků a postupů", correct: true },
+{ id: "B", text: "svazování dvou lan", correct: false },
+{ id: "C", text: "vytváření lanového zábradlí", correct: false }
+]},
+{ id: 8, question: "LT07 Je polohovací pás určen k zachycení pádu", answers: [
+{ id: "A", text: "ne", correct: true },
+{ id: "B", text: "ano", correct: false },
+{ id: "C", text: "ano, ale pouze v pro délku pádu 1,5 m", correct: false }
+]},
+{ id: 9, question: "LT07 K jištění pomocí poloviční lodní smyčky používáme", answers: [
+{ id: "A", text: "karabinu HMS", correct: true },
+{ id: "B", text: "karabinu bez zámku", correct: false },
+{ id: "C", text: "ocelovou karabinu", correct: false }
+]},
+{ id: 10, question: "LT07 K zadržení hasiče pomocí lana se používá", answers: [
+{ id: "A", text: "slaňovací prostředek se samoblokující funkcí", correct: true },
+{ id: "B", text: "kladka a pracovní lano", correct: false },
+{ id: "C", text: "osma", correct: false }
+]},
+{ id: 11, question: "LT07 Vyberte vhodný kotevní bod", answers: [
+{ id: "A", text: "krokev", correct: true },
+{ id: "B", text: "okap", correct: false },
+{ id: "C", text: "střešní lať", correct: false }
+]},
+{ id: 12, question: "LT12 Lezce, který bezvládně visí po pádu do lana", answers: [
+{ id: "A", text: "co nejrychleji vyprostíme z visu, odstraníme postroj a uložíme do horizontální polohy", correct: true },
+{ id: "B", text: "ponecháme v jeho poloze do příjezdu ZZS", correct: false },
+{ id: "C", text: "vyprostíme z visu a až po 2 hodinách uložíme do horizontální polohy", correct: false }
+]},
+{ id: 13, question: "LT12 Při dlouhém visu lezce po pádu hrozí riziko", answers: [
+{ id: "A", text: "poškození ledvin", correct: true },
+{ id: "B", text: "nevratné poškození dolních končetin", correct: false },
+{ id: "C", text: "poškození srdce", correct: false }
+]},
+{ id: 14, question: "LT14 Jaký uzel se používá na konci volného lana (stanoveno cvičebním řádem)", answers: [
+{ id: "A", text: "dvojitý rybářský uzel", correct: true },
+{ id: "B", text: "jednoduché očko", correct: false },
+{ id: "C", text: "liščí smyčka", correct: false }
+]},
+{ id: 15, question: "LT14 Je-li lano vedeno přes ostrou hranu nebo hrubý povrch", answers: [
+{ id: "A", text: "je nutné chránit jej pomocí hranových kladek, chrániček nebo jiných alternativních pomůcek (oděv, batoh atd.)", correct: true },
+{ id: "B", text: "je nutné určit osobu, která bude lano nepřetržitě kontrolovat", correct: false },
+{ id: "C", text: "není potřeba provádět zvláštní opatření vzhledem k vysoké odolnosti současných lan", correct: false }
+]},
+{ id: 16, question: "LT16 Pracovní polohovací pás", answers: [
+{ id: "A", text: "není určen k zachycení pádu", correct: true },
+{ id: "B", text: "není určen k práci", correct: false },
+{ id: "C", text: "není určen k sebezáchraně", correct: false }
+]},
+{ id: 17, question: "LT16 Sebezáchrana slaněním se provádí", answers: [
+{ id: "A", text: "jestliže hrozí bezprostřední ohrožení zdraví a života, a není-li jiná možnost, jak opustit ohrožený prostor ve výšce", correct: true },
+{ id: "B", text: "do výšky 15 m", correct: false },
+{ id: "C", text: "pouze v pod dohledem hasiče lezce", correct: false }
+]},
+{ id: 18, question: "LT19 Nouzové způsoby komunikace můžeme rozdělit na", answers: [
+{ id: "A", text: "optické, akustické, kontaktní", correct: true },
+{ id: "B", text: "akustické, optické", correct: false },
+{ id: "C", text: "optické, akustické, kontaktní, pomocí RDST a mobilním přístrojem", correct: false }
+]},
+{ id: 19, question: "LT19 Shození lana shora dolů je potřeba signalizovat povelem", answers: [
+{ id: "A", text: "pozor lano", correct: true },
+{ id: "B", text: "není třeba signalizovat", correct: false },
+{ id: "C", text: "pozor dole", correct: false }
+]},
+{ id: 20, question: "LT19 Začátek výstupu oznamuje hasič povelem", answers: [
+{ id: "A", text: "lezu", correct: true },
+{ id: "B", text: "jdu na to", correct: false },
+{ id: "C", text: "jistíš", correct: false }
+]},
+{ id: 21, question: "LT27 Jako „podchlazení organismu“ se míní teplota", answers: [
+{ id: "A", text: "menší než 35°C", correct: true },
+{ id: "B", text: "menší než 25°C", correct: false },
+{ id: "C", text: "menší než 28,82°C", correct: false }
+]},
+{ id: 22, question: "LT27 Při práci za vysoké sluneční intenzity a tepla hrozí přehřátí organizmu a vzniku možného", answers: [
+{ id: "A", text: "úpalu", correct: true },
+{ id: "B", text: "úspěchu", correct: false },
+{ id: "C", text: "útěku", correct: false }
+]},
+{ id: 23, question: "LT28 Kdy se musí osoby zajistit v koši výškové techniky?", answers: [
+{ id: "A", text: "bezprostředně po vstupu do koše", correct: true },
+{ id: "B", text: "až s košem vystoupají do 5 metrů", correct: false },
+{ id: "C", text: "příslušnici se v koši výškové techniky jistit nemusí", correct: false }
+]},
+{ id: 24, question: "LT28 Po jakou dobu musí být osoby v koši výškové techniky zajištěny?", answers: [
+{ id: "A", text: "po celou dobu pobytu v koši", correct: true },
+{ id: "B", text: "jen při nástupu do koše", correct: false },
+{ id: "C", text: "jen při výstupu z koše", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

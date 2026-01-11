@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "OOBaKR01 Definice pojmu „Ochrana obyvatelstva“ je uvedena v zákonu", answers: [
+{ id: "A", text: "č. 239/2000 Sb., o integrovaném záchranném systému", correct: true },
+{ id: "B", text: "č. 240/2000 Sb., o krizovém řízení", correct: false },
+{ id: "C", text: "č. 320/2015 Sb., o Hasičském záchranném sboru ČR", correct: false }
+]},
+{ id: 2, question: "OOBaKR01 Ve smyslu mezinárodního humanitárního práva je civilní obrana definována", answers: [
+{ id: "A", text: "v čl. 61 Dodatkového protokolu I k Ženevským úmluvám z 12. Srpna 1949", correct: true },
+{ id: "B", text: "v zákonu č. 240/2000 Sb. O krizovém řízení a změně některých zákonů (krizový zákon)", correct: false },
+{ id: "C", text: "v zákonu č.133/1985 Sb., o požární ochraně", correct: false }
+]},
+{ id: 3, question: "OOBaKR02 V rámci krajské úrovně zajištění nouzového přežití v působnosti HZS Olomouckého kraje lze využít", answers: [
+{ id: "A", text: "kontejner nouzového přežití", correct: true },
+{ id: "B", text: "souprava materiálu nouzového přežití k následnému použití", correct: false },
+{ id: "C", text: "souprava materiálu nouzového přežití k okamžitému použití", correct: false }
+]},
+{ id: 4, question: "OOBaKR03 Ke speciální očistě (dekontaminaci) osob slouží", answers: [
+{ id: "A", text: "malá koupací souprava", correct: true },
+{ id: "B", text: "velká koupací souprava", correct: false },
+{ id: "C", text: "zahradní postřikovač", correct: false }
+]},
+{ id: 5, question: "OOBaKR04 Při likvidaci nakaženého chovu v případě chřipky ptáků JPO neprovádějí", answers: [
+{ id: "A", text: "stanovení protiepidemických a profylaktických opatření pro osoby zasahující v místě zásahu", correct: true },
+{ id: "B", text: "zajištění a provoz prostředků pro osvětlení místa zásahu", correct: false },
+{ id: "C", text: "zajištění činnosti stanovišť dekontaminace (dezinfekce) osob a techniky", correct: false }
+]},
+{ id: 6, question: "OOBaKR06 Kdo je zpracovatelem krizového plán kraje", answers: [
+{ id: "A", text: "HZS kraje", correct: true },
+{ id: "B", text: "hejtman kraje", correct: false },
+{ id: "C", text: "krajský úřad", correct: false }
+]},
+{ id: 7, question: "OOBaKR06 Mezi územní krizové plány patří", answers: [
+{ id: "A", text: "krizový plán kraje, krizový plán obce s rozšířenou působností", correct: true },
+{ id: "B", text: "krizový plán ministerstva, krizový plán ČNB", correct: false },
+{ id: "C", text: "krizový plán ústředních správních úřadů, krizový plán ČNB", correct: false }
+]},
+{ id: 8, question: "OOBaKR07 Kolik členů by měla mít bezpečnostní rada kraje:", answers: [
+{ id: "A", text: "10", correct: true },
+{ id: "B", text: "5", correct: false },
+{ id: "C", text: "20", correct: false }
+]},
+{ id: 9, question: "OOBaKR07 Krizový štáb kraje svolává:", answers: [
+{ id: "A", text: "Hejtman kraje", correct: true },
+{ id: "B", text: "Starosta obce s rozšířenou působností", correct: false },
+{ id: "C", text: "Ředitel HZS kraje", correct: false }
+]},
+{ id: 10, question: "OOBaKR08 Kdo není členem operační skupiny:", answers: [
+{ id: "A", text: "Velitel družstva jednotek požární ochrany", correct: true },
+{ id: "B", text: "Územní řídící důstojník", correct: false },
+{ id: "C", text: "Pracovník úseku OOB a KŘ", correct: false }
+]},
+{ id: 11, question: "OOBaKR08 Zvolte správné tvrzení:", answers: [
+{ id: "A", text: "Štáb HZS je svoláván na základě rozhodnutí řídícího důstojníka kraje, o svolání je informován ředitel HZS kraje, svolání zajišťuje KOPIS", correct: true },
+{ id: "B", text: "Štáb HZS je svoláván na základě rozhodnutí KOPIS, který i svolání členů štábu HZS zajišťuje, informovat ředitele HZS kraje není potřeba", correct: false },
+{ id: "C", text: "Štáb HZS je svoláván na základě požadavku řídícího důstojníka územního odboru, řídící důstojník kraje nemusí se svolání souhlasit, svolání zajišťuje KOPIS", correct: false }
+]},
+{ id: 12, question: "OOBaKR09 Zvolte správné tvrzení:", answers: [
+{ id: "A", text: "Právnické i fyzické osoby musí strpět umístění zařízení systému varování a vyrozumění na svých nemovitostech", correct: true },
+{ id: "B", text: "Právnické osoby musí strpět umístění zařízení systému varování a vyrozumění na svých nemovitostech, fyzické osoby toto činní za úplatu", correct: false },
+{ id: "C", text: "Právnické a fyzické osoby nemají povinnost strpět umístění zařízení systému varování a vyrozumění na svých nemovitostech, pokud takové zařízení na objektu mají, získávají finanční odškodné od HZS kraje", correct: false }
+]},
+{ id: 13, question: "OOBaKR09 Který legislativní předpis definuje pojem ochrana obyvatelstva", answers: [
+{ id: "A", text: "zákon o IZS", correct: true },
+{ id: "B", text: "zákon o ochraně obyvatelstva", correct: false },
+{ id: "C", text: "zákon o požární ochraně", correct: false }
+]},
+{ id: 14, question: "OOBaKR10 Jaké lze vyhlásit krizové stavy na území ČR", answers: [
+{ id: "A", text: "stav nebezpečí, nouzový stav, stav ohrožení státu, válečný stav", correct: true },
+{ id: "B", text: "stav nebezpečí, stav nouze, stav ohrožení, válečný stav", correct: false },
+{ id: "C", text: "stav pohotovosti, stav bdělosti, stav ohrožení", correct: false }
+]},
+{ id: 15, question: "OOBaKR10 Stav nebezpečí vyhlašuje", answers: [
+{ id: "A", text: "hejtman kraje", correct: true },
+{ id: "B", text: "parlament", correct: false },
+{ id: "C", text: "vláda", correct: false }
+]},
+{ id: 16, question: "OOBaKR11 Jak se nazývá II. Stupeň povodňové aktivity", answers: [
+{ id: "A", text: "pohotovost", correct: true },
+{ id: "B", text: "bdělost", correct: false },
+{ id: "C", text: "ohrožení", correct: false }
+]},
+{ id: 17, question: "OOBaKR11 Odčerpání vody ze zatopených prostor patří mezi", answers: [
+{ id: "A", text: "likvidační práce", correct: true },
+{ id: "B", text: "povodňové zabezpečovací práce", correct: false },
+{ id: "C", text: "povodňové záchranné práce", correct: false }
+]},
+{ id: 18, question: "OOBaKR12 Jakou barvou je označen III. stupeň povodňové aktivity:", answers: [
+{ id: "A", text: "červenou", correct: true },
+{ id: "B", text: "žlutou", correct: false },
+{ id: "C", text: "zelenou", correct: false }
+]},
+{ id: 19, question: "OOBaKR12 Od kterého stupně povodňové aktivity začíná svou činnost hlídková služba:", answers: [
+{ id: "A", text: "I. SPA", correct: true },
+{ id: "B", text: "II. SPA", correct: false },
+{ id: "C", text: "III. SPA", correct: false }
+]},
+{ id: 20, question: "OOBaKR13 Jak se nazývá, jaký má tvar, délku signál určený k varování obyvatelstva", answers: [
+{ id: "A", text: "všeobecná výstraha, tvar kolísavý, délka 140s", correct: true },
+{ id: "B", text: "požární poplach, tvar přerušovaný, délka 140s", correct: false },
+{ id: "C", text: "všeobecná výstraha, tvar táhlý, délka 60s", correct: false }
+]},
+{ id: 21, question: "OOBaKR13 K čemu slouží signál „Požární poplach“:", answers: [
+{ id: "A", text: "Ke svolání jednotek požární ochrany", correct: true },
+{ id: "B", text: "K informování obyvatelstva o vzniku požáru", correct: false },
+{ id: "C", text: "K varování obyvatelstva a svolání jednotek požární ochrany", correct: false }
+]},
+{ id: 22, question: "OOBaKR14 Maximální doporučená hmotnost naplněného jednokomorového pytle na výstavbu hrází je", answers: [
+{ id: "A", text: "25 kg", correct: true },
+{ id: "B", text: "15 kg", correct: false },
+{ id: "C", text: "50 kg", correct: false }
+]},
+{ id: 23, question: "OOBaKR14 Základní pravidlo výstavby hrází z jednokomorových pytlů je", answers: [
+{ id: "A", text: "úvazky směrem od vody, paty pytle k vodě", correct: true },
+{ id: "B", text: "jeden pytel je úvazky směrem k vodě a druhý směrem od vody", correct: false },
+{ id: "C", text: "úvazky směrem k vodě, paty pytle od vody", correct: false }
+]},
+{ id: 24, question: "OOBaKR15 Objektová evakuace se vztahuje na", answers: [
+{ id: "A", text: "všechny osoby s výjimkou těch, kteří se podílí na záchranných pracích, na řízení evakuace nebo vykonávají jinou neodkladnou činnost", correct: true },
+{ id: "B", text: "pracovníky složek integrovaného záchranného systému", correct: false },
+{ id: "C", text: "všechny osoby", correct: false }
+]},
+{ id: 25, question: "OOBaKR15 Pravidla objektové evakuace stanoví také", answers: [
+{ id: "A", text: "požární evakuační plán, případně vnitřní havarijní plán,", correct: true },
+{ id: "B", text: "havarijní plán kraje", correct: false },
+{ id: "C", text: "vnější havarijní plán", correct: false }
+]},
+{ id: 26, question: "OOBaKR16 Co je evakuační zóna:", answers: [
+{ id: "A", text: "oblast, ze které je nutné provést evakuaci", correct: true },
+{ id: "B", text: "oblast, do které směřují evakuované osoby", correct: false },
+{ id: "C", text: "oblast, která slouží k ubytování evakuovaných osob", correct: false }
+]},
+{ id: 27, question: "OOBaKR16 Metodický list plošná evakuace řeší", answers: [
+{ id: "A", text: "řízenou evakuaci", correct: true },
+{ id: "B", text: "neřízenou evakuaci", correct: false },
+{ id: "C", text: "samovolnou evakuaci", correct: false }
+]},
+{ id: 28, question: "OOBaKR17 Kdo může být vedoucí evakuačního střediska", answers: [
+{ id: "A", text: "člen jednotky požární ochrany", correct: true },
+{ id: "B", text: "evakuovaná osoba", correct: false },
+{ id: "C", text: "osoba z nestátní neziskové organizace", correct: false }
+]},
+{ id: 29, question: "OOBaKR17 Kdo nemůže nařídit evakuaci:", answers: [
+{ id: "A", text: "KOPIS HZS", correct: true },
+{ id: "B", text: "velitel zásahu", correct: false },
+{ id: "C", text: "starosta obce", correct: false }
+]},
+{ id: 30, question: "OOBaKR18 Způsob zajištění nouzového ubytování je řešeno v", answers: [
+{ id: "A", text: "havarijním plánu kraje", correct: true },
+{ id: "B", text: "požární poplachové směrnici", correct: false },
+{ id: "C", text: "vnitřním havarijním plánu", correct: false }
+]},
+{ id: 31, question: "OOBaKR19 Kdo nepatří mezi zasažené osoby, kterým se poskytuje první psychická pomoc", answers: [
+{ id: "A", text: "hasič, zasahující při mimořádné události", correct: true },
+{ id: "B", text: "přímý účastník mimořádné události", correct: false },
+{ id: "C", text: "svědek mimořádné události", correct: false }
+]},
+{ id: 32, question: "OOBaKR19 První psychická pomoc spočívá mj. V", answers: [
+{ id: "A", text: "zajištění klidného a bezpečného místa pro osoby postižené mimořádnou událostí", correct: true },
+{ id: "B", text: "poskytnutí finanční podpory osobám postiženým mimořádnou událostí", correct: false },
+{ id: "C", text: "poskytnutí konzultací psychologa pro zasahující hasiče", correct: false }
+]},
+{ id: 33, question: "OOBaKR20 Kde je možné získat přehled materiálu na skladech HZS Olomouckého kraje?:", answers: [
+{ id: "A", text: "Havarijním plánu kraje", correct: true },
+{ id: "B", text: "Vnitřním havarijním plánu", correct: false },
+{ id: "C", text: "Požární poplachové směrnici", correct: false }
+]},
+{ id: 34, question: "OOBaKR21 Posttraumatická péče hasičům spočívá v", answers: [
+{ id: "A", text: "poskytnutí péče k omezení negativních dopadů na psychiku", correct: true },
+{ id: "B", text: "poskytnutí ambulantní první pomoci s polytraumatickým zraněním", correct: false },
+{ id: "C", text: "poskytnutí nouzového ubytování psychicky stresovaným hasičům", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "Sps T01 Kdo provádí pravidelnou údržbu akumulátorů", answers: [
+{ id: "A", text: "spojař z výjezdu nebo určený příslušník výjezdu", correct: true },
+{ id: "B", text: "obsluha radiostanice", correct: false },
+{ id: "C", text: "velitel jednotky", correct: false }
+]},
+{ id: 2, question: "Sps T01 Při jakých teplotách optimálně skladovat a používat baterie Li-lon", answers: [
+{ id: "A", text: "5 - 15°C", correct: true },
+{ id: "B", text: "0 - 5°C", correct: false },
+{ id: "C", text: "25 - 35°C", correct: false }
+]},
+{ id: 3, question: "Sps T02 K jakému účelu je předurčen spojový automobil", answers: [
+{ id: "A", text: "pro zajištění komunikací pro velitele zásahu při vyhlášení II. A vyššího stupně poplachu, pro technické zajištění pátrání po pohřešované osobě", correct: true },
+{ id: "B", text: "pro technické zajištění při pátrání po pohřešované osobě", correct: false },
+{ id: "C", text: "pro zajištění komunikací pro velitele zásahu při vyhlášení III. A vyššího stupně poplachu", correct: false }
+]},
+{ id: 4, question: "Sps T02 Set pro pátrání v terénu – GINA obsahuje", answers: [
+{ id: "A", text: "Gina centrála, 10ks tracker, 2ks tablet s GINA", correct: true },
+{ id: "B", text: "10ks tracker, 2ks tablet s GINA", correct: false },
+{ id: "C", text: "Gina centrála, 2ks tablet s GINA", correct: false }
+]},
+{ id: 5, question: "Sps T03 MPT odjíždí do opravy na více než jeden den", answers: [
+{ id: "A", text: "spojové prostředky se demontují", correct: true },
+{ id: "B", text: "spojové prostředky se demontují jen v případě, že budou prováděny práce svařovacím agregátem", correct: false },
+{ id: "C", text: "spojové prostředky se nedemontují", correct: false }
+]},
+{ id: 6, question: "Sps T03 Při zapůjčení MPT na jinou PS na dobu kratší než 5 dnů", answers: [
+{ id: "A", text: "spojové prostředky se nedemontují a osádka nadále používá volací značku mateřské PS", correct: true },
+{ id: "B", text: "spojové prostředky se demontují po příjezdu na cílovou PS", correct: false },
+{ id: "C", text: "spojové prostředky se po dobu zapůjčení nesmí používat", correct: false }
+]},
+{ id: 7, question: "Sps T04 Analogová rádiová síť HZS ČR (ARS) je provozována v pásmu", answers: [
+{ id: "A", text: "VHF 160 - 170 mhz", correct: true },
+{ id: "B", text: "UHF 1800 - 2100 mhz", correct: false },
+{ id: "C", text: "UHF 380 - 400 mhz", correct: false }
+]},
+{ id: 8, question: "Sps T04 Dle kmitočtového dělení v ARS jsou použity jako celostátní kmitočty zásahové", answers: [
+{ id: "A", text: "„K“, „N“, „I“, „S“", correct: true },
+{ id: "B", text: "„P1“, „P2“", correct: false },
+{ id: "C", text: "„V1“, „V2“", correct: false }
+]},
+{ id: 9, question: "Sps T05 Je u přijímačů JSVV řešena ochrana proti přepětí", answers: [
+{ id: "A", text: "ano, varistorem", correct: true },
+{ id: "B", text: "ano, pojistkou", correct: false },
+{ id: "C", text: "není řešena", correct: false }
+]},
+{ id: 10, question: "Sps T05V případě výpadku elektrického napájení z distribuční sítě je zálohování koncových prvků JSVV (sirén) zajištěno bezúdržbovými akumulátory u", answers: [
+{ id: "A", text: "elektronických sirén pro provoz minimálně po dobu 72 hodin", correct: true },
+{ id: "B", text: "rotačních sirén pro provoz minimálně po dobu 48 hodin", correct: false },
+{ id: "C", text: "všech typů koncových prvků pro provoz minimálně po dobu 24 hodin", correct: false }
+]},
+{ id: 11, question: "Sps T06 Co je „text to speech“", answers: [
+{ id: "A", text: "jedná se o počítačem generovanou simulaci lidské řeči", correct: true },
+{ id: "B", text: "kodek (kodér/dekodér) optimalizovaný pro řeč", correct: false },
+{ id: "C", text: "komunikační protokol pro přenos hlasu po datové síti", correct: false }
+]},
+{ id: 12, question: "Sps T06 Co je zkratka PLC", answers: [
+{ id: "A", text: "programovatelný logický automat", correct: true },
+{ id: "B", text: "napájecí středisko /powerline centrum/", correct: false },
+{ id: "C", text: "počítačové logické centrum", correct: false }
+]},
+{ id: 13, question: "Sps T07 Analogová radiostanice určená pro příjem se v převaděči označuje", answers: [
+{ id: "A", text: "RX", correct: true },
+{ id: "B", text: "RDX", correct: false },
+{ id: "C", text: "TX", correct: false }
+]},
+{ id: 14, question: "Sps T07 Napětí akumulátorů monitoruje a informaci o jeho stavu předává uživatelům rádiové sítě prostřednictvím „rogerbeepu“", answers: [
+{ id: "A", text: "modul DKN", correct: true },
+{ id: "B", text: "Duplexer", correct: false },
+{ id: "C", text: "GSM komunikátor", correct: false }
+]},
+{ id: 15, question: "Sps T08 Pracovníci KIS mj.", answers: [
+{ id: "A", text: "na základě požadavků velitelů stanic zajišťují vyslání technika spojové služby pro odstranění závad na spojových prostředcích pobočných požárních stanic", correct: true },
+{ id: "B", text: "na základě požadavků velitelů stanic zajišťují pracovníci KIS odstranění závad na spojových prostředcích pobočných požárních stanic", correct: false },
+{ id: "C", text: "odstranění závad na spojových prostředcích pobočných požárních stanic si zajišťují příslušníci pobočných stanic výhradně sami", correct: false }
+]},
+{ id: 16, question: "Sps T08 Technik spojové služby se mj.", answers: [
+{ id: "A", text: "účastní se zkoušek technologií vyhlašování poplachu a ve spolupráci s pracovníky KIS odstraňuje závady na těchto technologiích", correct: true },
+{ id: "B", text: "účastní se zkoušek technologií vyhlašování poplachu a ve spolupráci s pracovníky OPIS odstraňuje závady na těchto technologiích", correct: false },
+{ id: "C", text: "zkoušek technologií vyhlašování poplachu se neúčastní", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

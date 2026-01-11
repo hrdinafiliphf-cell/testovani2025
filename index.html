@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seznam oblastí testů</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    padding: 20px;
+    text-align: center;
+}
+h1 {
+    margin-bottom: 20px;
+}
+.area-link {
+    display: inline-block;
+    margin: 10px;
+    padding: 15px 25px;
+    background: #2196F3;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+.area-link:hover {
+    background: #1976D2;
+}
+</style>
+</head>
+<body>
+
+<h1>Výběr oblasti testu</h1>
+<div id="areas"></div>
+
+<script defer>
+// Pole s názvy oblastí a odpovídajícími soubory
+const areas = [
+    {name: "BOZP a Fyzická příprava - 21 + 4", file: "Testy/Testy_01_BOZPaFP-21_4.html"},
+    {name: "CHTS - Hasič - 67", file: "Testy/Testy_02_CHTS-67.html"},
+    {name: "Oblast 03 – BOZP03", file: "oblast03.html"},
+    {name: "Lezecká Průprava - 24", file: "Testy/Testy_04_LT-24.html"},
+    {name: "Nebezpečné látky - 24", file: "Testy/Testy_05_NL-24.html"},
+    {name: "Nebezpečí na požářišti - 37", file: "Testy/Testy_06_NP-37.html"},
+    {name: "Ochrana obyvatelstva a krizové řízení - 34", file: "Testy/Testy_07_OOB-34.html"},
+    {name: "Organizace požární ochrany - 38", file: "Testy/Testy_08_OPO-38.html"},
+    {name: "Požární prevence - 11", file: "Testy/Testy_09_PP-11.html"},
+    {name: "Požární taktika – základní - 41", file: "Testy/Testy_10_PTZ-41.html"},
+    {name: "Požární taktika – ostatní - 40", file: "Testy/Testy_11_PTO-40.html"},
+    {name: "Požární taktika – požár - 70", file: "Testy/Testy_12_PTP-70.html"},
+    {name: "Pořadový výcvik - 15", file: "Testy/Testy_13_PV-15.html"},
+    {name: "Spojová služba – hasiči - 14", file: "Testy/Testy_14_SPS-14.html"},
+    {name: "Spojová služba – technici", file: "Testy/Testy_15_SPS-T-16.html"},
+    {name: "Strojní služba", file: "oblast16.html"},
+    {name: "Taktické řízení – velitelé", file: "oblast17.html"},
+    {name: "Technický výcvik - 54", file: "Testy/Testy_18_TV-54.html"},
+    {name: "Technický zásah - 48", file: "Testy/Testy_19_TZ-48.html"},
+    {name: "Zdravotní průprava + kazuistiky - 31 + 12", file: "Testy/Testy_20_ZPaZPK-31_12.html"},
+    {name: "ADR a Značky", file: "oblast21.html"}
+];
+
+// Získání divu
+const areasDiv = document.getElementById("areas");
+
+// Generování tlačítek
+areas.forEach(area => {
+    const a = document.createElement("a");
+    a.href = area.file;
+    a.className = "area-link";
+    a.innerText = area.name;
+    areasDiv.appendChild(a);
+});
+</script>
+
+</body>
+</html>

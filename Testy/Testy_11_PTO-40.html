@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "PT061 Jakým způsobem lze účinně hasit požár jedlých tuků a olejů třídy F?", answers: [
+{ id: "A", text: "použitím vysokotlaké jemně rozptýlené vodní mlhy za použití vysokotlaké mlhové proudnice, tlaku vody na čerpadle min 40 bar a dodávce vody 3,5 l/s", correct: true },
+{ id: "B", text: "použitím běžné vody přímo na plameny", correct: false },
+{ id: "C", text: "použitím suchého písku nebo běžného hasicího přístroje na třídu A", correct: false }
+]},
+{ id: 2, question: "PTO01 Na zařízení armády (např. Technika mimo areály) HZS a JSDH zasahují", answers: [
+{ id: "A", text: "po oznámení kteréhokoliv občana", correct: true },
+{ id: "B", text: "jen se svolením armády", correct: false },
+{ id: "C", text: "nezasahují, je to v kompetenci armádní JPO", correct: false }
+]},
+{ id: 3, question: "PTO01 V objektech armády (vojenský prostor) přednostně velí", answers: [
+{ id: "A", text: "velení je upraveno pravidly přednostního velení s ohledem na druh civilní a vojenské JPO", correct: true },
+{ id: "B", text: "armádní JPO", correct: false },
+{ id: "C", text: "velitel HZS ČR", correct: false }
+]},
+{ id: 4, question: "PTO02 Bezpečný stav hnacího železničního vozidla (HŽV) před zásahem", answers: [
+{ id: "A", text: "zajistí strojvedoucí nebo jiný oprávněný zaměstnanec, který je oprávněn řídit HŽV příslušného druhu trakce", correct: true },
+{ id: "B", text: "bezpečný stav HŽV nelze v případě nehody zajistit", correct: false },
+{ id: "C", text: "zajistí pověřený příslušník HZS SŽDC na základě pokynu velitele zásahu", correct: false }
+]},
+{ id: 5, question: "PTO02 Oprávnění provést zajištění vypnutého stavu trakčního vedení má", answers: [
+{ id: "A", text: "jednotka HZS SŽDC", correct: true },
+{ id: "B", text: "pracovník dopravce na základě příkazu B", correct: false },
+{ id: "C", text: "velitelem zásahu určený a poučený příslušník jednotky PO", correct: false }
+]},
+{ id: 6, question: "PTO03 Vyloučení dopravního provozu kolem místa zásahu na železnici", answers: [
+{ id: "A", text: "zajistí výpravčí přilehlých železničních stanic", correct: true },
+{ id: "B", text: "zajistí jednotka HZS SŽDC", correct: false },
+{ id: "C", text: "zajišťují zasahující jednotky PO", correct: false }
+]},
+{ id: 7, question: "PTO03 Zajištění vypnutí trakčního vedení provádí", answers: [
+{ id: "A", text: "elektro dispečer nebo výpravčí ve službě", correct: true },
+{ id: "B", text: "elektro dispečer dodavatele elektrické energie", correct: false },
+{ id: "C", text: "KOPIS HZS ČR", correct: false }
+]},
+{ id: 8, question: "PTO04 Průběžný kabel vysokého napětí (1 až 3 kV) mezi jednotlivými vozy může odpojit", answers: [
+{ id: "A", text: "strojvedoucí nebo jiný oprávněný zaměstnanec", correct: true },
+{ id: "B", text: "hasič určený velitelem zásahu", correct: false },
+{ id: "C", text: "průběžný kabel není možné z důvodu bezpečnosti odpojit", correct: false }
+]},
+{ id: 9, question: "PTO05 O způsobu zásahu v železničním tunelu rozhoduje", answers: [
+{ id: "A", text: "zejména druh události, vlaku, konstrukce tunelu, vybavení tunelu", correct: true },
+{ id: "B", text: "instrukce uvedené v požárně bezpečnostním řešení tunelu", correct: false },
+{ id: "C", text: "pokyny uvedené v bezpečnostním listu tunelu", correct: false }
+]},
+{ id: 10, question: "PTO05 Zavedení kontrolovaného vstupu a výstupu z tunelu", answers: [
+{ id: "A", text: "je třeba zajistit u obou portálů pro všechny osoby a hasiče, je třeba zamezit vstupu nepovolaným osobám", correct: true },
+{ id: "B", text: "je třeba zajistit u portálu, kde aktuálně probíhá zásah pouze pro hasiče, kteří využívají DT", correct: false },
+{ id: "C", text: "kontrolovat je třeba pouze evakuované osoby", correct: false }
+]},
+{ id: 11, question: "PTO06 Co rozumíme pod pojmem ´´intenzita dodávky hasební látky´´?", answers: [
+{ id: "A", text: "množství hasební látky, která je dodávána na jednotku plochy nebo obvodu požáru za jednotku času", correct: true },
+{ id: "B", text: "čas příjezdu k zásahu", correct: false },
+{ id: "C", text: "počet hasičů potřebný k hašení", correct: false }
+]},
+{ id: 12, question: "PTO06 Průtok požární proudnice C52", answers: [
+{ id: "A", text: "200 l/min", correct: true },
+{ id: "B", text: "400 l/min", correct: false },
+{ id: "C", text: "500 l/min", correct: false }
+]},
+{ id: 13, question: "PTO08 Hašení hromad nebo barikád se provádí", answers: [
+{ id: "A", text: "vozidly CAS s větším objemem vody a možností instalace hasicí lišty v přední části vozu.", correct: true },
+{ id: "B", text: "vozidly CAS s menším objemem vody a možností instalace hasicí lišty v přední části vozu.", correct: false },
+{ id: "C", text: "vozidly CAS s větším objemem vody bez možností instalace hasicí lišty v přední části vozu.", correct: false }
+]},
+{ id: 14, question: "PTO100 Posttraumatickou péčí hasičům po zásahu se rozumí", answers: [
+{ id: "A", text: "péče poskytnutá hasičům, kteří v souvislosti s plněním úkolů prožili traumatizující událost, která může negativně ovlivnit jejich další výkon služby.", correct: true },
+{ id: "B", text: "doplnění stravy a nápojů po zásahu", correct: false },
+{ id: "C", text: "oznámení nadřízenému, že hasiči prožili těžký zásah", correct: false }
+]},
+{ id: 15, question: "PTO100 Z hlediska času se psychosociální pomoc dělí na", answers: [
+{ id: "A", text: "první psychickou pomoc, střednědobá a dlouhodobá pomoc", correct: true },
+{ id: "B", text: "následující psychosociální pomoc", correct: false },
+{ id: "C", text: "první a poslední psychosociální pomoc", correct: false }
+]},
+{ id: 16, question: "PTO102 Jaké okolnosti nejčastěji ztěžují přístup požární techniky do památkových objektů?", answers: [
+{ id: "A", text: "zúžené nebo snížené profily komunikací", correct: true },
+{ id: "B", text: "otevírací doba objektu", correct: false },
+{ id: "C", text: "silný vítr", correct: false }
+]},
+{ id: 17, question: "PTO103 Při útoku aktivního střelce SAP složek IZS přijedou, případně se přesunou do", answers: [
+{ id: "A", text: "nástupního prostoru", correct: true },
+{ id: "B", text: "nebezpečné zóny", correct: false },
+{ id: "C", text: "zastaví 500 m od budovy, kde je MU", correct: false }
+]},
+{ id: 18, question: "PTO103 Velitel zásahu při útoku aktivního střelce je", answers: [
+{ id: "A", text: "příslušník PČR", correct: true },
+{ id: "B", text: "lékař ZZS", correct: false },
+{ id: "C", text: "příslušník HZS", correct: false }
+]},
+{ id: 19, question: "PTO104 Při zásahu na mimořádnou událost s podezřením na výskyt vysoce nakažlivé nemoci (VNN) dle STČ 16A/IZS je velitelem zásahu", answers: [
+{ id: "A", text: "příslušník HZS kraje", correct: true },
+{ id: "B", text: "orgán ochrany veřejného zdraví (OOVZ)", correct: false },
+{ id: "C", text: "příslušník Policie ČR", correct: false }
+]},
+{ id: 20, question: "PTO104 Při zásahu na mimořádnou událost s podezřením na výskyt vysoce nakažlivé nemoci (VNN) dle STČ 16A/IZS stanovuje ohnisko nákazy a rozhoduje o činnostech v ohnisku nákazy", answers: [
+{ id: "A", text: "orgán ochrany veřejného zdraví (OOVZ) po dohodě s velitelem zásahu", correct: true },
+{ id: "B", text: "vedoucí lékař", correct: false },
+{ id: "C", text: "velitel zásahu", correct: false }
+]},
+{ id: 21, question: "PTO108 Nasazení hasičů v objektu vězeňské služby", answers: [
+{ id: "A", text: "minimálně ve dvojicích v doprovodu příslušníka vězeňské služby, a to s ohledem na jeho bezpečnost a vybavení", correct: true },
+{ id: "B", text: "minimálně ve dvojicích bez doprovodu příslušníka vězeňské služby", correct: false },
+{ id: "C", text: "minimálně ve dvojicích v doprovodu příslušníka vězeňské služby, ohled na jeho bezpečnost a vybavení brát nemusí", correct: false }
+]},
+{ id: 22, question: "PTO112 Biologický materiál je", answers: [
+{ id: "A", text: "jakýkoliv materiál, jehož původcem je osoba s podezřením na onemocnění VNN", correct: true },
+{ id: "B", text: "jakýkoliv materiál, jehož původcem je osoba nakažená VNN", correct: false },
+{ id: "C", text: "pouze odpadový materiál, jehož původcem je osoba s podezřením na onemocnění VNN", correct: false }
+]},
+{ id: 23, question: "PTO14 U letecké nehody je velitelem zásahu", answers: [
+{ id: "A", text: "příslušník HZS", correct: true },
+{ id: "B", text: "člen ZZS", correct: false },
+{ id: "C", text: "příslušník PČR", correct: false }
+]},
+{ id: 24, question: "PTO14 U letecké nehody, pokud tělesné ostatky nepřekážejí zásahu složek IZS, se tělesné ostatky", answers: [
+{ id: "A", text: "nechávají na místě", correct: true },
+{ id: "B", text: "pietně pohřbívají na místě nálezu", correct: false },
+{ id: "C", text: "shromažďují se na VZ určené místo", correct: false }
+]},
+{ id: 25, question: "PTO15 Po iniciaci nástražného výbušného systému se na místě zásahu", answers: [
+{ id: "A", text: "může nacházet další nástražný výbušný systém", correct: true },
+{ id: "B", text: "již nenachází další nebezpečí, jednotka se vrací na základnu", correct: false },
+{ id: "C", text: "neuvažuje další obdobné nebezpečí, velení IZS přebírá ZZS", correct: false }
+]},
+{ id: 26, question: "PTO15 Při zásahu s přítomností nástražného výbušného systému se na místo události vysílají minimálně", answers: [
+{ id: "A", text: "2 jednotky požární ochrany z toho minimálně 1 jednotka HZS ČR s CAS", correct: true },
+{ id: "B", text: "1 jednotka JSDH obce", correct: false },
+{ id: "C", text: "4 jednotky požární ochrany z toho minimálně 2 jednotky HZS ČR s CAS", correct: false }
+]},
+{ id: 27, question: "PTO16 Tunely mohou být odvětrávány", answers: [
+{ id: "A", text: "přirozeně a nuceně (nebo jejich kombinací)", correct: true },
+{ id: "B", text: "pouze nuceně", correct: false },
+{ id: "C", text: "pouze přirozeně", correct: false }
+]},
+{ id: 28, question: "PTO18 Jaký je hlavní cíl složek IZS při zásahu s osobou páchající sebevraždu?", answers: [
+{ id: "A", text: "odvrácení nebo omezení bezprostředního působení rizik vzniklých činností osoby páchající sebevraždu", correct: true },
+{ id: "B", text: "zamezit ostatním občanům, aby sledovali průběh sebevraždy", correct: false },
+{ id: "C", text: "zjistit totožnost osoby, která se pokouší o sebevraždu", correct: false }
+]},
+{ id: 29, question: "PTO22 U pátraní osob v terénu mezi záchranné práce nepatří", answers: [
+{ id: "A", text: "psaní zpráv o průběhu pátrání", correct: true },
+{ id: "B", text: "poskytnutí první pomoci", correct: false },
+{ id: "C", text: "vyhledávání pohřešované osoby", correct: false }
+]},
+{ id: 30, question: "PTO22 Velitelem zásahu je u pátrání osob v terénu", answers: [
+{ id: "A", text: "příslušník PČR", correct: true },
+{ id: "B", text: "dle dohody a převažující činnosti", correct: false },
+{ id: "C", text: "příslušník HZS", correct: false }
+]},
+{ id: 31, question: "PTO24 Jednotky se při své činnosti setkávají také s osobami se specifickými potřebami", answers: [
+{ id: "A", text: "zrakovými, tělesnými, mentálními, duševními a kombinovaným", correct: true },
+{ id: "B", text: "pouze se zrakovými a tělesnými", correct: false },
+{ id: "C", text: "nesetkávají se s osobami se specifickými potřebami", correct: false }
+]},
+{ id: 32, question: "PTO24 Lze při zásahu oddělovat nevidomou osobu od vodícího psa", answers: [
+{ id: "A", text: "při zásahu nelze oddělovat nevidomou osobu od vodícího psa", correct: true },
+{ id: "B", text: "nejdříve vyvedeme vodícího psa a poté se vrátíme pro nevidomou osobu", correct: false },
+{ id: "C", text: "vodícího psa necháme na místě zásahu a vyvedeme pouze nevidomou osobu.", correct: false }
+]},
+{ id: 33, question: "PTO25 O vhodnosti a způsobu provedení trhacích prací rozhoduje po průzkumu místa zásahu", answers: [
+{ id: "A", text: "střelmistr nebo technický vedoucí odstřelu", correct: true },
+{ id: "B", text: "pouze střelmistr", correct: false },
+{ id: "C", text: "pouze technický vedoucí odstřelu", correct: false }
+]},
+{ id: 34, question: "PTO25 Trhací práce v rámci HZS ČR může provádět pouze", answers: [
+{ id: "A", text: "střelmistr", correct: true },
+{ id: "B", text: "velitel čety", correct: false },
+{ id: "C", text: "velitel zásahu", correct: false }
+]},
+{ id: 35, question: "PTO26 Úkoly jednotek PO při zásahu s osobou páchající sebevraždu po příjezdu Policie ČR", answers: [
+{ id: "A", text: "provádění záchranných prací podle požadavků velitele zásahu a místních podmínek a provedení odpovídajících likvidačních pracích na místě zásahu.", correct: true },
+{ id: "B", text: "omezit osobní svobodu osoby páchající sebevraždu", correct: false },
+{ id: "C", text: "podání tišících prostředků osobě páchající sebevraždu", correct: false }
+]},
+{ id: 36, question: "PTO27 Při koordinaci záchranných a likvidačních prací Ministerstvo vnitra zabezpečuje", answers: [
+{ id: "A", text: "stanovení priorit provádění záchranných a likvidačních prací", correct: true },
+{ id: "B", text: "nouzové dodávky energií", correct: false },
+{ id: "C", text: "varovaní a vyrozumění obyvatelstva", correct: false }
+]},
+{ id: 37, question: "PTO30 Je možné varovat řidiče jedoucích po dálnicích a rychlostních komunikacích 1. třídy prostřednictvím Národního dopravního informačního a řídicího centra?", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "ano, pouze pokud mají řidiči nainstalovanou aplikaci dálnice", correct: false },
+{ id: "C", text: "v žádném případě", correct: false }
+]},
+{ id: 38, question: "PTO58 Při požárech střešních konstrukcí s přítomností FV panelů je nutno počítat s následujícími komplikacemi", answers: [
+{ id: "A", text: "riziko úrazu elektrickým proudem, možnost záměny se solárním ohřevem, osvětlovací prostředky mohou generovat v solárních panelech napětí", correct: true },
+{ id: "B", text: "nebezpečí ionizujícího záření v důsledku zahřívání FV panelů", correct: false },
+{ id: "C", text: "nebezpečí poleptání kyselinou obsaženou v panelech,", correct: false }
+]},
+{ id: 39, question: "PTO58 V napájecích kabelech propojujících FV panely a měnič (střídač) se nachází", answers: [
+{ id: "A", text: "stejnosměrné napětí až 1000V", correct: true },
+{ id: "B", text: "střídavé i stejnosměrné napětí v závislosti na druhu provozu", correct: false },
+{ id: "C", text: "střídavé napětí max. 50V", correct: false }
+]},
+{ id: 40, question: "PTO61 Při hašení požárů jedlých tuku a olejů třídy F pomocí vysokotlaké vodní mlhy je nutné, aby", answers: [
+{ id: "A", text: "vysokotlaký vodní mlhový kužel pokryl celou plochu hořící olejové lázně", correct: true },
+{ id: "B", text: "vysokotlaký vodní mlhový kužel nelze pro hašení požárů třídy F použít", correct: false },
+{ id: "C", text: "vysokotlaký vodní mlhový kužel pokryl pouze polovinu hořící olejové lázně", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

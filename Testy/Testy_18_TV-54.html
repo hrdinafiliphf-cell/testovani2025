@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "TV01 Kdo přiděluje jednotlivá čísla hasičům v rámci organizačního rozdělení", answers: [
+{ id: "A", text: "VD", correct: true },
+{ id: "B", text: "číslo 1", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 2, question: "TV01 Samostatný průzkum družstva na místě zásahu provádí", answers: [
+{ id: "A", text: "VD a zpravidla č.1 popř. i č.2", correct: true },
+{ id: "B", text: "strojník a VD", correct: false },
+{ id: "C", text: "VD samostatně", correct: false }
+]},
+{ id: 3, question: "TV02 Povel musí být dostatečně", answers: [
+{ id: "A", text: "hlasitý, zřetelný, jasný i stručný a především srozumitelný", correct: true },
+{ id: "B", text: "hlasitý, jasný i stručný a především srozumitelný", correct: false },
+{ id: "C", text: "hlasitý, zřetelný, jasný i stručný", correct: false }
+]},
+{ id: 4, question: "TV02 VD ovládá činnost družstva a hasičů pomocí", answers: [
+{ id: "A", text: "povelů", correct: true },
+{ id: "B", text: "proseb", correct: false },
+{ id: "C", text: "mimiky", correct: false }
+]},
+{ id: 5, question: "TV03 Signál nebezpečí všichni zpět se provádí", answers: [
+{ id: "A", text: "krouživým pohybem natažené pravé ruky před čelem", correct: true },
+{ id: "B", text: "krouživým pohybem natažené levé ruky", correct: false },
+{ id: "C", text: "pohybem ruky nahoru a dolů", correct: false }
+]},
+{ id: 6, question: "TV03 Základní signály pro dodávku vody a varovné signály lze provádět", answers: [
+{ id: "A", text: "slovně, pomocí rukou, pomocí lana, světelné signály", correct: true },
+{ id: "B", text: "pomocí rukou, pomocí lana, světelné signály", correct: false },
+{ id: "C", text: "slovně, pomocí rukou, světelné signály", correct: false }
+]},
+{ id: 7, question: "TV05 Spojování a rozpojování hadic provádí", answers: [
+{ id: "A", text: "hadici C jeden hasič, hadici B dva hasiči", correct: true },
+{ id: "B", text: "hadici C i B jeden hasič", correct: false },
+{ id: "C", text: "podle potřeby", correct: false }
+]},
+{ id: 8, question: "TV22 Nástup družstva se provádí", answers: [
+{ id: "A", text: "v řadu", correct: true },
+{ id: "B", text: "v tvaru", correct: false },
+{ id: "C", text: "za pochodu", correct: false }
+]},
+{ id: 9, question: "TV22 Výchozí postavení družstva 1+5 při nástupu", answers: [
+{ id: "A", text: "družstvo je v rozchodu", correct: true },
+{ id: "B", text: "družstvo je rozkladu", correct: false },
+{ id: "C", text: "družstvo je v zástupu", correct: false }
+]},
+{ id: 10, question: "TV23 Nástup družstva před nebo za stroj se provádí podle umístění výtlačného hrdla čerpadla, družstvo nastupuje vždy v", answers: [
+{ id: "A", text: "dvojřadu", correct: true },
+{ id: "B", text: "dvojstupu", correct: false },
+{ id: "C", text: "trojstupu", correct: false }
+]},
+{ id: 11, question: "TV23 Nástup družstva se provádí dle umístění výtlačného hrdla čerpadla", answers: [
+{ id: "A", text: "za stroj nebo před stroj", correct: true },
+{ id: "B", text: "libovolně", correct: false },
+{ id: "C", text: "z pravé nebo levé strany", correct: false }
+]},
+{ id: 12, question: "TV44 Dálková doprava vody se uskutečňuje", answers: [
+{ id: "A", text: "hadicovým vedením B 75", correct: true },
+{ id: "B", text: "hadicovým vedením C 42", correct: false },
+{ id: "C", text: "hadicovým vedením D 25", correct: false }
+]},
+{ id: 13, question: "TV44 K dálkové dopravě vody na velké vzdálenosti se", answers: [
+{ id: "A", text: "mohou použít speciální systémy pro dopravu vody", correct: true },
+{ id: "B", text: "mohou použít pouze hadice JSDH", correct: false },
+{ id: "C", text: "může použít pouze vedení B 75", correct: false }
+]},
+{ id: 14, question: "TV45 Vodní stěna slouží zejména", answers: [
+{ id: "A", text: "k ochraně osob před účinky sálavého tepla", correct: true },
+{ id: "B", text: "k hašení požárů fasád a obvodových stěn", correct: false },
+{ id: "C", text: "ke zkoušce maximálního tlaku čerpadla", correct: false }
+]},
+{ id: 15, question: "TV47 Kterou z následujících činností strojník vykonává při zásahu?", answers: [
+{ id: "A", text: "udržuje spojení s VD po dobu průzkumu, a pokud je to nutné i s příslušným operačním a informačním střediskem.", correct: true },
+{ id: "B", text: "rozhoduje, jaký druh bojového rozvinutí družstvo provede.", correct: false },
+{ id: "C", text: "tvoří útočné vedení pro první proud.", correct: false }
+]},
+{ id: 16, question: "TV47 Jakou z následujících činností vykonává velitel družstva (VD) při zásahu?", answers: [
+{ id: "A", text: "provádí průzkum nebo vysílá průzkumnou skupinu.", correct: true },
+{ id: "B", text: "obsluhuje stroj a sleduje signály.", correct: false },
+{ id: "C", text: "provádí záchranu osob spolu s útočnou skupinou.", correct: false }
+]},
+{ id: 17, question: "TV 47 Jakou z následujících činností vykonává hasič č. 2 při zásahu?", answers: [
+{ id: "A", text: "Tvoří útočné vedení pro první proud.", correct: true },
+{ id: "B", text: "Obsluhuje stroj a sleduje signály.", correct: false },
+{ id: "C", text: "Rozhoduje, jaký druh bojového rozvinutí družstvo provede.", correct: false }
+]},
+{ id: 18, question: "TV50 Kdo pomáhá strojníkovi sestavit přívodní vedení u družstva 1+5", answers: [
+{ id: "A", text: "číslo 4", correct: true },
+{ id: "B", text: "číslo 1", correct: false },
+{ id: "C", text: "číslo 2", correct: false }
+]},
+{ id: 19, question: "TV50 Přívodní vedení z přírodního toku lze provést pomoci", answers: [
+{ id: "A", text: "savic a sběrného koše", correct: true },
+{ id: "B", text: "pomoci ejektoru a hadic D", correct: false },
+{ id: "C", text: "pomocí hydrantového nástavce a hadic a sběrače", correct: false }
+]},
+{ id: 20, question: "TV53 Kdo pomáhá v útočném postavení číslům 1 a 2 při manipulaci s proudem", answers: [
+{ id: "A", text: "číslo 4", correct: true },
+{ id: "B", text: "strojník", correct: false },
+{ id: "C", text: "strojník s číslem 4", correct: false }
+]},
+{ id: 21, question: "TV53 Lze v útočném postavení u útočného proudu B místo proudnice B použít lafetovou proudnici", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "jen v případě hašení nádrží", correct: false },
+{ id: "C", text: "nelze", correct: false }
+]},
+{ id: 22, question: "TV54 Je možné porušit zásadu nedělitelnosti skupiny při prodlužování útočného proudu C u družstva 1+5", answers: [
+{ id: "A", text: "ano, číslo 2 se vrátí pro záložní hadici", correct: true },
+{ id: "B", text: "ano, jen se souhlasem VD", correct: false },
+{ id: "C", text: "nelze", correct: false }
+]},
+{ id: 23, question: "TV55 Dopravní vedení a dva útočné proudy s pěnou od CAS - kdo provádí obsluhu rozdělovače", answers: [
+{ id: "A", text: "sudá čísla", correct: true },
+{ id: "B", text: "lichá čísla", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 24, question: "TV56 Kdo provádí obsluhu přiměšovače: u prvního proudu družstva 1+5", answers: [
+{ id: "A", text: "číslo 4", correct: true },
+{ id: "B", text: "strojník", correct: false },
+{ id: "C", text: "VD", correct: false }
+]},
+{ id: 25, question: "TV56 Kdo se vyzbrojí přiměšovačem u prvního proudu družstva 1+5", answers: [
+{ id: "A", text: "číslo 2", correct: true },
+{ id: "B", text: "číslo 1", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 26, question: "TV59 Je možné nasadit na vysokotlakou proudnici pěnotvorný nástavec", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "jen provizorně", correct: false },
+{ id: "C", text: "nelze, není na to uzpůsobená", correct: false }
+]},
+{ id: 27, question: "TV59 Kdo uvolňuje pojistku navijáku vysokotlaké hadice", answers: [
+{ id: "A", text: "číslo 1", correct: true },
+{ id: "B", text: "strojník", correct: false },
+{ id: "C", text: "VD", correct: false }
+]},
+{ id: 28, question: "TV60 Dopravní vedení a první útočný proud do poschodí", answers: [
+{ id: "A", text: "rozdělovač je umístěn zpravidla před vstupem do budovy", correct: true },
+{ id: "B", text: "rozdělovač je umístěn zpravidla před vstupem do bytu", correct: false },
+{ id: "C", text: "rozdělovač se nepoužívá", correct: false }
+]},
+{ id: 29, question: "TV60 Útočný proud do poschodí", answers: [
+{ id: "A", text: "hadice se jistí pomocí vazáků např. K zábradlí, balkonům nebo tam, kde je to možné", correct: true },
+{ id: "B", text: "hadice se jistí dle uvážení čísla 1", correct: false },
+{ id: "C", text: "hadice se nejistí pomocí vazáků, při útoku do poschodí není jištění potřeba", correct: false }
+]},
+{ id: 30, question: "TV61 Dopravní vedení C s rozdělovačem do poschodí", answers: [
+{ id: "A", text: "rozdělovač je zpravidla umístěn jedno podlaží pod nebo na mezipodestě", correct: true },
+{ id: "B", text: "rozdělovač je zpravidla umístěn před vstupem do bytu", correct: false },
+{ id: "C", text: "rozdělovač se nepoužívá", correct: false }
+]},
+{ id: 31, question: "TV62 Kdo podává nastavovací žebřík z nástavby požárního automobilu", answers: [
+{ id: "A", text: "strojník", correct: true },
+{ id: "B", text: "č.1", correct: false },
+{ id: "C", text: "č.2", correct: false }
+]},
+{ id: 32, question: "TV62 Sada žebříku se rozkládá", answers: [
+{ id: "A", text: "směrem k budově", correct: true },
+{ id: "B", text: "směrem od budovy", correct: false },
+{ id: "C", text: "v cvičebním řádu není uvedeno", correct: false }
+]},
+{ id: 33, question: "TV63 Dálkovody hořlavých kapalin jsou potrubní systémy a technologická zařízení k přepravě hořlavých kapalin. Jedná se o zařízení", answers: [
+{ id: "A", text: "která jsou umístěna na otevřených prostranstvích nebo uložena v podzemí", correct: true },
+{ id: "B", text: "jednopotrubní, dvojpotrubní, vícepotrubní", correct: false },
+{ id: "C", text: "přetlaková, rovnotlaká a podtlaková", correct: false }
+]},
+{ id: 34, question: "TV63 Po dokončení výstupu na žebřík č. 1 provede", answers: [
+{ id: "A", text: "zajistí sebe a případně i žebřík karabinou, hadici zajistí vazákem, připraví se k zásahu a signalizuje o vodu k rozdělovači", correct: true },
+{ id: "B", text: "hadici zajistí vazákem, připraví se k zásahu a signalizuje o vodu k rozdělovači", correct: false },
+{ id: "C", text: "zajistí sebe a případně i žebřík karabinou a signalizuje o vodu k rozdělovači", correct: false }
+]},
+{ id: 35, question: "TV63 Požáry dálkovodů hořlavých kapalin jsou mimo jiné charakteristické", answers: [
+{ id: "A", text: "nebezpečím výbuchu a destrukcí dálkovodu", correct: true },
+{ id: "B", text: "dostatkem nástupních ploch", correct: false },
+{ id: "C", text: "nebezpečím zasypáním a zavalením", correct: false }
+]},
+{ id: 36, question: "TV63 Při útoku s automobilovou vysokozdvižnou plošinou strojník CAS", answers: [
+{ id: "A", text: "rozvine potřebný počet hadic B a připojí obě hadice na výtlačná hrdla CAS a druhé konce obou hadic zanese strojníkovi k plošině", correct: true },
+{ id: "B", text: "hadice rozvinují a připojují čísla 3 a 4", correct: false },
+{ id: "C", text: "rozvine pouze jednu hadici B, připojuje strojník plošiny", correct: false }
+]},
+{ id: 37, question: "TV65 První útočný proud do podzemí – co slouží k orientaci v zakouřeném prostředí", answers: [
+{ id: "A", text: "hadicové vedení nebo vodící lano", correct: true },
+{ id: "B", text: "označená místa", correct: false },
+{ id: "C", text: "smluvené signály", correct: false }
+]},
+{ id: 38, question: "TV65 První útočný proud do podzemí, nasazení přetlakové ventilace – kdo ovládá přetlakový ventilátor", answers: [
+{ id: "A", text: "číslo 4", correct: true },
+{ id: "B", text: "číslo 3", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 39, question: "TV66 Kdo je zodpovědný za stav dopravního vedení", answers: [
+{ id: "A", text: "velitel úseku dopravy vody", correct: true },
+{ id: "B", text: "operační důstojník", correct: false },
+{ id: "C", text: "řídící důstojník", correct: false }
+]},
+{ id: 40, question: "TV67 Kdo je zodpovědný za bezpečnost práce družstva", answers: [
+{ id: "A", text: "velitel družstva", correct: true },
+{ id: "B", text: "č.1", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 41, question: "TV67 Kdo udržuje spojení s VD po dobu průzkumu a s operačním a informačním střediskem", answers: [
+{ id: "A", text: "strojník", correct: true },
+{ id: "B", text: "č. 1", correct: false },
+{ id: "C", text: "č. 2", correct: false }
+]},
+{ id: 42, question: "TV70 Druhý proud na rozdělovači je při pohledu od rozdělovače k útočným proudům", answers: [
+{ id: "A", text: "vpravo", correct: true },
+{ id: "B", text: "uprostřed", correct: false },
+{ id: "C", text: "vlevo", correct: false }
+]},
+{ id: 43, question: "TV70 První proud na rozdělovači je při pohledu od rozdělovače k útočným proudům", answers: [
+{ id: "A", text: "vlevo", correct: true },
+{ id: "B", text: "uprostřed", correct: false },
+{ id: "C", text: "vpravo", correct: false }
+]},
+{ id: 44, question: "TV71 Číslo 1 je při jednoduchém vedení od stroje vybaveno", answers: [
+{ id: "A", text: "dvě hadice „C“ a proudnice", correct: true },
+{ id: "B", text: "jednou hadicí „C“", correct: false },
+{ id: "C", text: "proudnicí", correct: false }
+]},
+{ id: 45, question: "TV72 Kdo provádí obsluhu přiměšovače při jednoduchém útočném vedení s pěnou u družstva 1+3", answers: [
+{ id: "A", text: "ten, koho určí VD", correct: true },
+{ id: "B", text: "číslo 1", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 46, question: "TV72 Útočný proud s pěnou na přiměšovač (1+3) - co se provádí po ukončení hašení pěnou", answers: [
+{ id: "A", text: "proplach hadicového vedení", correct: true },
+{ id: "B", text: "výplach kanystru od pěnidla", correct: false },
+{ id: "C", text: "vypuštění zbývající vody z CAS", correct: false }
+]},
+{ id: 47, question: "TV75 Kdo rovná hadici u DR3 při tvoření útočného vysokotlakého proudu", answers: [
+{ id: "A", text: "VD", correct: true },
+{ id: "B", text: "číslo 1", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 48, question: "TV75 Kdo uvolňuje pojistku navijáku vysokotlaké hadice u DR3 u útočného vysokotlakého proudu", answers: [
+{ id: "A", text: "číslo 1", correct: true },
+{ id: "B", text: "číslo 1 a číslo 2", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 49, question: "TV77 Kdo obsluhuje rozdělovač u družstva 1+3", answers: [
+{ id: "A", text: "VD", correct: true },
+{ id: "B", text: "č. 1", correct: false },
+{ id: "C", text: "č. 2", correct: false }
+]},
+{ id: 50, question: "TV77 Kdo připojuje hadici na stroj", answers: [
+{ id: "A", text: "strojník", correct: true },
+{ id: "B", text: "č. 1", correct: false },
+{ id: "C", text: "VD", correct: false }
+]},
+{ id: 51, question: "TV82 Čím se jistí obsluha v koši plošiny", answers: [
+{ id: "A", text: "polohovacím pásem", correct: true },
+{ id: "B", text: "lanem", correct: false },
+{ id: "C", text: "nemusí být jištěna", correct: false }
+]},
+{ id: 52, question: "TV82 Kdo vytváří dopravní vedení s rozdělovačem u družstva 1+3", answers: [
+{ id: "A", text: "strojník, č. 1 a 2", correct: true },
+{ id: "B", text: "č. 1 a VD", correct: false },
+{ id: "C", text: "VD", correct: false }
+]},
+{ id: 53, question: "TV84 Oznámení o kácení dřevin (§ 8 odst. 4 zákona), které bylo provedeno složkami IZS z rozhodnutí velitele zásahu musí být oznámeno nejpozději", answers: [
+{ id: "A", text: "do 15 dní od provedení kácení na orgán ochrany přírody", correct: true },
+{ id: "B", text: "do 1 roku", correct: false },
+{ id: "C", text: "do 30 dní na ministerstvo životního prostředí", correct: false }
+]},
+{ id: 54, question: "TV84 Žádost o povolení kácení dřevin dle §8 odst.1 zákona č. 114/1992 Sb. Podává", answers: [
+{ id: "A", text: "majitel pozemku, vlastník", correct: true },
+{ id: "B", text: "KOPIS", correct: false },
+{ id: "C", text: "obsluha motorové pily", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

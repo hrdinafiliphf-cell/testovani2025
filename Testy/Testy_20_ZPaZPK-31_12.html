@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "Co znamená zkratka AED", answers: [
+{ id: "A", text: "Automatizovaný externí defibrilátor", correct: true },
+{ id: "B", text: "Autentický externí defibrilátor", correct: false },
+{ id: "C", text: "Automatický externí defibrilátor", correct: false }
+]},
+{ id: 2, question: "ZP01 Který výkon má nejvyšší prioritu při vyšetřování zraněného", answers: [
+{ id: "A", text: "zástava masivního krvácení", correct: true },
+{ id: "B", text: "zahájení KPR (kardiopulmonální resuscitace)", correct: false },
+{ id: "C", text: "zprůchodnění dýchacích cest", correct: false }
+]},
+{ id: 3, question: "ZP01 Při kontrole dýchání se pacient během 10 vteřin musí plnohodnotně nadechnout", answers: [
+{ id: "A", text: "2x", correct: true },
+{ id: "B", text: "1x", correct: false },
+{ id: "C", text: "4x", correct: false }
+]},
+{ id: 4, question: "ZP02 Bezpečná vzdálenost kyslíku od AED při podání výboje?", answers: [
+{ id: "A", text: "1 m", correct: true },
+{ id: "B", text: "3 m", correct: false },
+{ id: "C", text: "5 m", correct: false }
+]},
+{ id: 5, question: "ZP02 Elektrody je potřeba nalepit", answers: [
+{ id: "A", text: "na čistou a suchou pokožku", correct: true },
+{ id: "B", text: "na čistou a mokrou pokožku", correct: false },
+{ id: "C", text: "na mokrou pokožku", correct: false }
+]},
+{ id: 6, question: "ZP02 Hranice spo2 (saturace) pro zahájení podávání kyslíku", answers: [
+{ id: "A", text: "90 %", correct: true },
+{ id: "B", text: "95 %", correct: false },
+{ id: "C", text: "99 %", correct: false }
+]},
+{ id: 7, question: "ZP02 Množství podávaného kyslíku při resuscitaci", answers: [
+{ id: "A", text: "12 l/min", correct: true },
+{ id: "B", text: "25 l/min", correct: false },
+{ id: "C", text: "8 l/min", correct: false }
+]},
+{ id: 8, question: "ZP02 Elektrody je potřeba nalepit", answers: [
+{ id: "A", text: "na čistou a suchou pokožku", correct: true },
+{ id: "B", text: "na čistou a mokrou pokožku", correct: false },
+{ id: "C", text: "na mokrou pokožku", correct: false }
+]},
+{ id: 9, question: "ZP02 Zprůchodnění dýchacích cest při zapadnutém kořeni jazyka jednoznačně vyřešíme", answers: [
+{ id: "A", text: "záklonem hlavy", correct: true },
+{ id: "B", text: "předklonem hlavy", correct: false },
+{ id: "C", text: "vytažením jazyka dvěma prsty pomocí kapesníku", correct: false }
+]},
+{ id: 10, question: "ZP03 Do zotavovací polohy je možné postiženého uložit, jestliže", answers: [
+{ id: "A", text: "postižený normálně dýchá a je intoxikován", correct: true },
+{ id: "B", text: "postižený nedýchá", correct: false },
+{ id: "C", text: "u postiženého byla resuscitací obnovena srdeční činnost", correct: false }
+]},
+{ id: 11, question: "ZP04 Klidová dechová frekvence kojence za jednu minutu je", answers: [
+{ id: "A", text: "25 – 35 dechů", correct: true },
+{ id: "B", text: "16 dechů", correct: false },
+{ id: "C", text: "40 dechů", correct: false }
+]},
+{ id: 12, question: "ZP04 Příčiny dušnosti se dělí na", answers: [
+{ id: "A", text: "zevní a vnitřní", correct: true },
+{ id: "B", text: "akutní a nahodilé", correct: false },
+{ id: "C", text: "nedělí se vůbec", correct: false }
+]},
+{ id: 13, question: "ZP05 Jakým přístrojem se provádí první pomoc při zástavě srdce", answers: [
+{ id: "A", text: "AED", correct: true },
+{ id: "B", text: "EED", correct: false },
+{ id: "C", text: "EKG", correct: false }
+]},
+{ id: 14, question: "ZP05 Při fibrilaci se srdce", answers: [
+{ id: "A", text: "pumpuje krev nedostatečně, jemně se „třese“", correct: true },
+{ id: "B", text: "pumpuje krev normálně", correct: false },
+{ id: "C", text: "pumpuje krev rychleji", correct: false }
+]},
+{ id: 15, question: "ZP06 Jaké známe druhy krvácení", answers: [
+{ id: "A", text: "tepenné, žilní, vlásečnicové", correct: true },
+{ id: "B", text: "tepenné, zevní, vnitřní", correct: false },
+{ id: "C", text: "žilní, vnitřní", correct: false }
+]},
+{ id: 16, question: "ZP06 Rozdíl mezi žilním a tepenným krvácení posuzujeme hlavně podle", answers: [
+{ id: "A", text: "tlaku a barvy vytékající krve", correct: true },
+{ id: "B", text: "barvy obličeje zraněného", correct: false },
+{ id: "C", text: "krevní skupiny postiženého", correct: false }
+]},
+{ id: 17, question: "ZP07 Druhy zlomenin", answers: [
+{ id: "A", text: "zavřené, otevřené", correct: true },
+{ id: "B", text: "zavřené, otevřené, s krvácením", correct: false },
+{ id: "C", text: "zavřené, otevřené, tříštivé", correct: false }
+]},
+{ id: 18, question: "ZP07 Otevřené zlomeniny jsou většinou provázeny", answers: [
+{ id: "A", text: "krvácením", correct: true },
+{ id: "B", text: "kulháním", correct: false },
+{ id: "C", text: "zvracením", correct: false }
+]},
+{ id: 19, question: "ZP08 Mezi úkony první pomoci při šoku patří", answers: [
+{ id: "A", text: "polohování", correct: true },
+{ id: "B", text: "podání malého množství alkoholu pro uklidnění", correct: false },
+{ id: "C", text: "podávání velkého množství tekutin pro doplnění tekutin v organismu", correct: false }
+]},
+{ id: 20, question: "ZP08 Při šoku nahradíme podání tekutin", answers: [
+{ id: "A", text: "zvlhčením rtů", correct: true },
+{ id: "B", text: "podáním cca 3 dcl. Mléka", correct: false },
+{ id: "C", text: "ponořením končetin do vody", correct: false }
+]},
+{ id: 21, question: "ZP08 Příznaky šoku jsou", answers: [
+{ id: "A", text: "zrychlený tep, bledá, studeně zpocená kůže, netečnost, promodrání periferií", correct: true },
+{ id: "B", text: "růžová barva kůže, veselost, zúžené zornice", correct: false },
+{ id: "C", text: "zuřivost, hyperaktivita, zvýšená teplota", correct: false }
+]},
+{ id: 22, question: "ZP09 Podle klasifikace popálenin dle hloubky zasažení je nejhlubší, který stupeň", answers: [
+{ id: "A", text: "III. Stupeň (v některé literatuře uváděn IV. Stupeň)", correct: true },
+{ id: "B", text: "I. Stupeň", correct: false },
+{ id: "C", text: "IV. Stupeň", correct: false }
+]},
+{ id: 23, question: "ZP09 U popálenin se nesmí", answers: [
+{ id: "A", text: "odstraňovat přiškvařené zbytky oděvu z popálenin", correct: true },
+{ id: "B", text: "ochlazovat postižené místo vodou", correct: false },
+{ id: "C", text: "s postiženým hýbat", correct: false }
+]},
+{ id: 24, question: "ZP11 S těžce poraněným", answers: [
+{ id: "A", text: "nikdy zbytečně nepohybujeme, kromě případu, kdy je bezprostředně ohrožen na životě", correct: true },
+{ id: "B", text: "můžeme libovolně manipulovat", correct: false },
+{ id: "C", text: "nikdy zbytečně nepohybujeme, i když je bezprostředně ohrožen na životě", correct: false }
+]},
+{ id: 25, question: "ZP12 Nejrychleji se ztrácí tělesné teplo", answers: [
+{ id: "A", text: "vedením (např. Pobytem ve studené vodě)", correct: true },
+{ id: "B", text: "nevhodným pitným režimem", correct: false },
+{ id: "C", text: "při zvýšené tělesné námaze", correct: false }
+]},
+{ id: 26, question: "ZP12 Poklesne-li tělesná teplota pod 35 stupňů Celsia, nastává", answers: [
+{ id: "A", text: "podchlazení", correct: true },
+{ id: "B", text: "křeče a šok z přehřátí", correct: false },
+{ id: "C", text: "tepelný úpal", correct: false }
+]},
+{ id: 27, question: "ZP13 Exspirace sterilního zdravotnického materiálu v lékárničkách HZS", answers: [
+{ id: "A", text: "je uvedena na obalu a je pro nás závazná", correct: true },
+{ id: "B", text: "je neomezená, záleží na stavu konkrétního kusu materiálu", correct: false },
+{ id: "C", text: "je uvedena na obalu a je pro nás pouze orientační", correct: false }
+]},
+{ id: 28, question: "ZP13 Neposkytnutím první pomoci dle zákona 40/2009 sbírky, § 150 se dopustíme", answers: [
+{ id: "A", text: "trestného činu", correct: true },
+{ id: "B", text: "nedopustíme protiprávního jednání", correct: false },
+{ id: "C", text: "přestupku", correct: false }
+]},
+{ id: 29, question: "ZP16 Je ZZS základní složkou IZS", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "jen u DN", correct: false },
+{ id: "C", text: "ne", correct: false }
+]},
+{ id: 30, question: "ZP17 Použití zotavovací polohy", answers: [
+{ id: "A", text: "při bezvědomí se zachováním dýchaní a krevního oběhu", correct: true },
+{ id: "B", text: "v případě kdy osoba pravidelně nedýchá", correct: false },
+{ id: "C", text: "v případě kdy osoba pravidelně nedýchá, ale má pravidelný pulz", correct: false }
+]},
+{ id: 31, question: "ZP17 Zotavovací poloha", answers: [
+{ id: "A", text: "poloha při, které se osoby nacházejí v bezvědomí se zachovanými životními funkcemi (pravidelné a dostatečně hluboké dýchaní, ideální hmatný puls).", correct: true },
+{ id: "B", text: "poloha při, které osoba sedí na židli", correct: false },
+{ id: "C", text: "poloha při, které se osoby nacházejí v kóma a nemají zachované životní funkce", correct: false }
+]},
+{ id: 32, question: "ZPKAZ Černou páskou označíme pacienta s poraněním", answers: [
+{ id: "A", text: "poranění neslučitelné se životem", correct: true },
+{ id: "B", text: "zranění, kteří jsou dechově i oběhově stabilní", correct: false },
+{ id: "C", text: "zranění, kteří můžou chodit a sami opustit místo nehody", correct: false }
+]},
+{ id: 33, question: "ZPKAZ Černou pásku přidělíme pokud", answers: [
+{ id: "A", text: "po zaklonění hlavy pacient nedýchá.", correct: true },
+{ id: "B", text: "pacient odchází sám.", correct: false },
+{ id: "C", text: "po zaklonění hlavy pacient dýchá.", correct: false }
+]},
+{ id: 34, question: "ZPKAZ Černou pásku přidělíš pacientovi, který", answers: [
+{ id: "A", text: "nejeví známky zranění – vědomí NE, dechová frekvence 0, po záklonu 0, krevní návrat neměřitelný, vyhoví výzvě NE", correct: true },
+{ id: "B", text: "má otevřenou zlomeninu dolní končetiny – vědomí ANO, dechová frekvence 15, krevní návrat 2s, vyhoví výzvě ANO", correct: false },
+{ id: "C", text: "má tepenné krvácení na dolní končetině – vědomí ANO, dechová frekvence 15, krevní návrat 3s, vyhoví výzvě ANO", correct: false }
+]},
+{ id: 35, question: "ZPKAZ Červenou pásku přidělíš pacientovi, který", answers: [
+{ id: "A", text: "má tepenné krvácení na dolní končetině – vědomí ANO, dechová frekvence 15, kapilární návrat 3s, vyhoví výzvě ANO", correct: true },
+{ id: "B", text: "má otevřenou zlomeninu dolní končetině – vědomí ANO, dechová frekvence 15, kapilární návrat 2s, vyhoví výzvě ANO", correct: false },
+{ id: "C", text: "nejeví známky zranění – vědomí NE, dechová frekvence 0, po záklonu 0, kapilární návrat neměřitelný, vyhoví výzvě NE", correct: false }
+]},
+{ id: 36, question: "ZPKAZ Červenou pásku přidělíš pacientovy, který", answers: [
+{ id: "A", text: "má tepenné krvácení na dolní končetině – vědomí ANO, dechová frekvence 15, krevní návrat 3s, vyhoví výzvě ANO", correct: true },
+{ id: "B", text: "cítí bolest v oblasti pánve – vědomí ANO, dechová frekvence 14, krevní návrat 2s, vyhoví výzvě ANO", correct: false },
+{ id: "C", text: "necítí dolní končetiny, bolest zad, brnění nohou – vědomí ANO, dechová frekvence 14, krevní návrat 2s, vyhoví výzvě ANO", correct: false }
+]},
+{ id: 37, question: "ZPKAZ Letadlo havarovalo s 50 cestujícími na palubě. Osoby jsou lokalizovány na 10000m2 černou páskou označíš při metodě START pacienta, který", answers: [
+{ id: "A", text: "na oslovení nereaguje, v bezvědomí, kapilární návrat 10s a delší, dechová frekvence 0/min, amputace horní končetiny", correct: true },
+{ id: "B", text: "na oslovení reaguje, je orientovaný, ale není schopen dojít na určené místo (zlomenina dolní končetiny), kapilární návrat do 2s, dechová frekvence 20/min", correct: false },
+{ id: "C", text: "na oslovení reaguje, při vědomí, kapilární návrat 3s, dechová frekvence 8/min, zlomenina dolní končetiny", correct: false }
+]},
+{ id: 38, question: "ZPKAZ Letadlo havarovalo s 50 cestujícími na palubě. Osoby jsou lokalizovány na 10000m2 červenou páskou označíš při metodě START pacienta, který", answers: [
+{ id: "A", text: "na oslovení reaguje, při vědomí, kapilární návrat 3s, dechová frekvence 8/min, zlomenina dolní končetiny", correct: true },
+{ id: "B", text: "na oslovení nereaguje, v bezvědomí, kapilární návrat 10s, dechová frekvence 0/min, amputace horní končetiny", correct: false },
+{ id: "C", text: "na oslovení reaguje, je orientovaný, ale není schopen dojít na určené místo (zlomenina dolní končetiny), kapilární návrat do 2s, dechová frekvence 20/min.", correct: false }
+]},
+{ id: 39, question: "ZPKAZ Zelenou pásku přidělíš pacientovi, který", answers: [
+{ id: "A", text: "má odřeniny/bez zranění – chodící", correct: true },
+{ id: "B", text: "má popáleniny na horní končetině – vědomí ANO, dechová frekvence 14, krevní návrat 2s, vyhoví výzvě ANO", correct: false },
+{ id: "C", text: "nejeví známky zranění – vědomí NE, dechová frekvence 0, po záklonu 0, krevní návrat neměřitelný, vyhoví výzvě NE", correct: false }
+]},
+{ id: 40, question: "ZPKAZ Zranění je v kritickém stavu a jeho ošetření nesnese odkladu. Jakou páskou ho označíte", answers: [
+{ id: "A", text: "červenou", correct: true },
+{ id: "B", text: "černou", correct: false },
+{ id: "C", text: "zelenou", correct: false }
+]},
+{ id: 41, question: "ZPKAZ Zraněný leží ve zhroucené poloze, dýchá, nereaguje na žádný vnější podnět. Jakou páskou ho označíte", answers: [
+{ id: "A", text: "červenou", correct: true },
+{ id: "B", text: "zelenou", correct: false },
+{ id: "C", text: "žlutou", correct: false }
+]},
+{ id: 42, question: "ZPKAZ Žlutou páskou označíte zraněného který", answers: [
+{ id: "A", text: "má zlomeninu dolní končetiny bez zjevného krvácení, je při vědomí, dýchá, orientovaný", correct: true },
+{ id: "B", text: "leží na zemi, bez reakce na jakýkoliv vnější podnět", correct: false },
+{ id: "C", text: "má zlomeninu dolní končetiny, která masivně krvácí, je při vědomí ale ztrácí orientaci", correct: false }
+]},
+{ id: 43, question: "ZPKAZ Žlutou pásku přidělíš pacientovi, který má", answers: [
+{ id: "A", text: "popáleniny na dolní končetině – vědomí ANO, dechová frekvence 14, kapilární návrat 2s, vyhoví výzvě ANO", correct: true },
+{ id: "B", text: "popálený hrudník – vědomí ANO, dechová frekvence nad 30, kapilární návrat 2s, vyhoví výzvě NE", correct: false },
+{ id: "C", text: "popálený obličej/krk – vědomí NE, dechová frekvence 0, po záklonu 0, kapilární návrat neměřitelný, vyhoví výzvě NE", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

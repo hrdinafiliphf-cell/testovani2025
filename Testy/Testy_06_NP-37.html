@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "NP01 Okolnosti, které mají vliv na podstatné zvyšování úrovně zátěže při zásahu, jsou zejména", answers: [
+{ id: "A", text: "použití ochranných oděvů pro hasiče a dýchací techniky", correct: true },
+{ id: "B", text: "podávání ochranných nápojů", correct: false },
+{ id: "C", text: "sledování situace z povzdáli", correct: false }
+]},
+{ id: 2, question: "NP01 Z hlediska taktiky spočívá ochrana před vyčerpáním v těchto zásadách", answers: [
+{ id: "A", text: "stravování u zásahů s délkou více jak 4,5 hodiny", correct: true },
+{ id: "B", text: "není nutné sledovat nasazení hasičů u zásahu", correct: false },
+{ id: "C", text: "při delším zásahu není povinnost podávat ochranné nápoje", correct: false }
+]},
+{ id: 3, question: "NP02 Jaká je ochrana před infekcí", answers: [
+{ id: "A", text: "vyhodnocovat rizika a používat ochranné prostředky odpovídající úrovni tohoto rizika", correct: true },
+{ id: "B", text: "nevyhodnocovat rizika velitel zásahu rozhodne", correct: false },
+{ id: "C", text: "vyhodnocovat rizika, ale použití ochranných prostředků si rozhodne hasič sám", correct: false }
+]},
+{ id: 4, question: "NP02 Ochranné prostředky", answers: [
+{ id: "A", text: "proti vzdušným infekcím používat izolační dýchací přístroje, masky bez řádné dezinfekce nepoužívat u více osob", correct: true },
+{ id: "B", text: "proti vzdušným infekcím používat jen izolační dýchací přístroje, masky se nemusí dezinfikovat", correct: false },
+{ id: "C", text: "proti vzdušným infekcím stačí používat respirátory", correct: false }
+]},
+{ id: 5, question: "NP05 Může horká pára pod tlakem proniknout přes všechny vrstvy zásahového oděvu", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "jen v zimě", correct: false },
+{ id: "C", text: "ne", correct: false }
+]},
+{ id: 6, question: "NP05 Příznaky opaření se projevují", answers: [
+{ id: "A", text: "silná bolest v poraněné oblasti a kolem ní, zarudnutí, otok, možnost šoku", correct: true },
+{ id: "B", text: "bílá kůže, vysoká teplota", correct: false },
+{ id: "C", text: "černá kůže, nízká teplota", correct: false }
+]},
+{ id: 7, question: "NP06 Je nástavba mobilní požární techniky prostorem s bezprostředním nebezpečím pádu", answers: [
+{ id: "A", text: "ne", correct: true },
+{ id: "B", text: "ano", correct: false },
+{ id: "C", text: "pouze nad 3,5m", correct: false }
+]},
+{ id: 8, question: "NP06 Velitel zásahu může rozhodnout o nedodržení technických podmínek požární techniky a věcných prostředků", answers: [
+{ id: "A", text: "ano – jestliže hrozí nebezpečí z prodlení při záchraně života osob", correct: true },
+{ id: "B", text: "jak uzná za vhodné", correct: false },
+{ id: "C", text: "ne – nikdy", correct: false }
+]},
+{ id: 9, question: "NP07 Příznaky omrznutí", answers: [
+{ id: "A", text: "postižené části těla (špička nosu, uši) nejprve zblednou, potom se stávají voskově bílými, později modré skvrny v konečné fázi zčernají", correct: true },
+{ id: "B", text: "postupné bezvědomí", correct: false },
+{ id: "C", text: "ztráta pozornosti", correct: false }
+]},
+{ id: 10, question: "NP07 Příznaky podchlazení", answers: [
+{ id: "A", text: "třesavka, studená a bledá kůže, tělesná teplota pod normálem", correct: true },
+{ id: "B", text: "postižené části těla se stávají voskově bílými", correct: false },
+{ id: "C", text: "ztvrdlá a ztuhlá kůže, puchýře", correct: false }
+]},
+{ id: 11, question: "NP08 Odstupová vzdálenost pro žíravé kapaliny je", answers: [
+{ id: "A", text: "5m", correct: true },
+{ id: "B", text: "10m", correct: false },
+{ id: "C", text: "15m", correct: false }
+]},
+{ id: 12, question: "NP08 Odstupová vzdálenost pro žíravé radioaktivní látky", answers: [
+{ id: "A", text: "min. 50 m a následně dle dávky naměřeného dávkového příkonu", correct: true },
+{ id: "B", text: "min. 100 m", correct: false },
+{ id: "C", text: "min. 100 m a následně dle dávky naměřeného dávkového příkonu", correct: false }
+]},
+{ id: 13, question: "NP09 Jaká je ochrana proti sálavému teplu", answers: [
+{ id: "A", text: "dostatečná vzdálenost, úkryt za konstrukce, vodní clona a protivýbuchová opatření", correct: true },
+{ id: "B", text: "dobré oblečení", correct: false },
+{ id: "C", text: "dostatek hasiva", correct: false }
+]},
+{ id: 14, question: "NP09 K poškození sliznic dýchacích cest dochází", answers: [
+{ id: "A", text: "vdechnutím horkých plynů", correct: true },
+{ id: "B", text: "jen v zimě", correct: false },
+{ id: "C", text: "studeným vzduchem z IDP (izolační dýchací přístroj)", correct: false }
+]},
+{ id: 15, question: "NP10 Nárazníkové postavení je", answers: [
+{ id: "A", text: "postavení zásahového vozidla HZS, které vytváří prostor pro bezpečnou práci hasičů", correct: true },
+{ id: "B", text: "postavení zásahového vozidla HZS, které odděluje nebezpečný prostor od bezpečného", correct: false },
+{ id: "C", text: "postavení zásahového vozidla ZZS, které vytváří prostor pro bezpečnou práci hasičů", correct: false }
+]},
+{ id: 16, question: "NP10 Nebezpečí při zásahu na pozemních komunikacích vyplývá zejména z", answers: [
+{ id: "A", text: "manipulace s havarovanými vozidly a jejich náklady", correct: true },
+{ id: "B", text: "manipulace s havarovanými vozidly", correct: false },
+{ id: "C", text: "plynulostí dopravy", correct: false }
+]},
+{ id: 17, question: "NP11 Ochranou před nebezpečím přehřátí rozumíme", answers: [
+{ id: "A", text: "pravidelné střídání hasičů, dodržování doby nasazení a doby regenerace sil", correct: true },
+{ id: "B", text: "odstranění zdrojů tepelného záření", correct: false },
+{ id: "C", text: "používání dýchací techniky", correct: false }
+]},
+{ id: 18, question: "NP11 Přehřátí se projevuje", answers: [
+{ id: "A", text: "nárůstem tepové frekvence", correct: true },
+{ id: "B", text: "bílou pokožkou a modráním rtů", correct: false },
+{ id: "C", text: "snížením tepové frekvence", correct: false }
+]},
+{ id: 19, question: "NP12 Jedním z příznaků psychického vyčerpání je", answers: [
+{ id: "A", text: "pracovní nespokojenost až pracovní vyhasnutí", correct: true },
+{ id: "B", text: "mnohomluvnost, upovídanost", correct: false },
+{ id: "C", text: "přejídání se", correct: false }
+]},
+{ id: 20, question: "NP12 Psychická zátěž je", answers: [
+{ id: "A", text: "zatížení člověka (záchranáře) vyvolávající stresovou odezvu organismu", correct: true },
+{ id: "B", text: "dezorientace v prostoru", correct: false },
+{ id: "C", text: "stav nevolnosti a zvracení", correct: false }
+]},
+{ id: 21, question: "NP13 Jaká je ochrana před nebezpečím udušení", answers: [
+{ id: "A", text: "používání ochrany dýchacích cest hasiče, tj. Izolačního dýchacího přístroje a správná volba dalších ochranných prostředků s ohledem na použitá hasiva a nebezpečné látky na místě zásahu", correct: true },
+{ id: "B", text: "dobrá fyzická kondice - vytrvalost", correct: false },
+{ id: "C", text: "mělké dýchání", correct: false }
+]},
+{ id: 22, question: "NP13 Jaké jsou příznaky dušení", answers: [
+{ id: "A", text: "modrání rtů, ušních boltců, obličeje a konečků prstů", correct: true },
+{ id: "B", text: "hyperaktivita", correct: false },
+{ id: "C", text: "tepenné krvácení", correct: false }
+]},
+{ id: 23, question: "NP14 Osoby bez elektrotechnické kvalifikace se mohou k nekrytému elektrickému zařízení pod napětím 400V přiblížit maximálně na vzdálenost:", answers: [
+{ id: "A", text: "1 metr", correct: true },
+{ id: "B", text: "10 metrů", correct: false },
+{ id: "C", text: "jedná se o napětí nižší, než 1000V vzdálenost není omezena", correct: false }
+]},
+{ id: 24, question: "NP14 Při požáru celých objektů musí být vypnuto venkovní vedení silového zařízení v okruhu", answers: [
+{ id: "A", text: "30 m", correct: true },
+{ id: "B", text: "1 m", correct: false },
+{ id: "C", text: "10 m", correct: false }
+]},
+{ id: 25, question: "NP15 Nebezpečí utonutí hrozí při zásazích jednotek", answers: [
+{ id: "A", text: "které souvisí se záchrannými a zabezpečovacími pracemi na vodní hladině i pod vodou při povodních, záplavách a jiných mimořádných událostech", correct: true },
+{ id: "B", text: "při čerpání sklepů", correct: false },
+{ id: "C", text: "při přečerpávání nebezpečných látek", correct: false }
+]},
+{ id: 26, question: "NP15 Z hlediska taktiky jednotek při zásahu spočívá ochrana života a zdraví hasičů před utonutím zejména", answers: [
+{ id: "A", text: "v nepřeceňování sil a nepodceňování situace a rizik, ve znalosti vodního díla, toku a ve využití informací správce toku nebo místních občanů", correct: true },
+{ id: "B", text: "v okamžitém vyhodnocení situace a nasazení S a P", correct: false },
+{ id: "C", text: "ve využití nejlepších plavců", correct: false }
+]},
+{ id: 27, question: "NP16 Fyzikální výbuch je způsoben", answers: [
+{ id: "A", text: "změnou fyzikálních parametrů", correct: true },
+{ id: "B", text: "expanzivní fiskální politikou", correct: false },
+{ id: "C", text: "fyzickou reakcí na stresující situaci", correct: false }
+]},
+{ id: 28, question: "NP16 Podle podstaty rozeznáváme výbuch", answers: [
+{ id: "A", text: "fyzikální a chemický", correct: true },
+{ id: "B", text: "pomalý a rychlý", correct: false },
+{ id: "C", text: "velký a malý", correct: false }
+]},
+{ id: 29, question: "NP19 Ochrana životů a zdraví hasičů před nebezpečím ztráty orientace při zásahu spočívá zejména v následujících zásadách", answers: [
+{ id: "A", text: "odvětrání zakouřených prostor, osvětlení místa zásahu, určení většího počtu průzkumných skupin, místní znalost, vhodné označení zásahových cest", correct: true },
+{ id: "B", text: "nedělitelné skupiny", correct: false },
+{ id: "C", text: "odvětrání zakouřených prostor, osvětlení místa zásahu", correct: false }
+]},
+{ id: 30, question: "NP19 Ztráta orientace má za následek", answers: [
+{ id: "A", text: "ztížení průzkumu, znesnadňuje postup i ústup hasičů a zhoršuje účinnost zásahu", correct: true },
+{ id: "B", text: "nemá vliv na provedení zásahu", correct: false },
+{ id: "C", text: "usnadnění průzkumu, postupu i ústupu hasičů a zlepšuje účinnost zásahu", correct: false }
+]},
+{ id: 31, question: "NP20 Pro práci se včelami nebo jiným nebezpečným hmyzem", answers: [
+{ id: "A", text: "používáme včelařskou výstroj", correct: true },
+{ id: "B", text: "nepoužíváme včelařskou kuklu", correct: false },
+{ id: "C", text: "odchyt provádíme bez rukavic", correct: false }
+]},
+{ id: 32, question: "NP20 U zdivočelých a neovladatelných zvířat, které ohrožují své okolí", answers: [
+{ id: "A", text: "je možné využití zvláštních opatření (odchyt, narkotizace, usmrcení zvířete)", correct: true },
+{ id: "B", text: "dle uvážení majitele zvířete", correct: false },
+{ id: "C", text: "není možné využití zvláštních opatření (odchyt, narkotizace, usmrcení zvířete)", correct: false }
+]},
+{ id: 33, question: "NP21 Bezpečná vzdálenost pro odstavení mobilní požární techniky při zásahu na železnici je", answers: [
+{ id: "A", text: "ve vzdálenosti minimálně 2,5 m od hlavy krajní koleje", correct: true },
+{ id: "B", text: "ve vzdálenosti 2,5 m od trakčního vedeni 3kv, ve vzdálenosti 5m od trakčního vedení 22kv", correct: false },
+{ id: "C", text: "ve vzdálenosti 5 m od svislé osy trakčního vedení", correct: false }
+]},
+{ id: 34, question: "NP21 V případě potřeby zastavit provoz na železnici může hasič provést pomocí", answers: [
+{ id: "A", text: "signalizace nebezpečí světelným nebo zvukovým návěstím", correct: true },
+{ id: "B", text: "informováním určeného pracovníka provozovatele trati", correct: false },
+{ id: "C", text: "provedením uzemnění havarovaného ŽKV", correct: false }
+]},
+{ id: 35, question: "NP22 Při detonaci se rázová vlna šíří", answers: [
+{ id: "A", text: "rychleji než zvuk", correct: true },
+{ id: "B", text: "pomaleji než zvuk", correct: false },
+{ id: "C", text: "především směrem nahoru", correct: false }
+]},
+{ id: 36, question: "NP23 Při úniku PCB (polychlorované bifenyly) bez požáru se hranice nebezpečné zóny vytyčuje ve vzdálenosti", answers: [
+{ id: "A", text: "minimálně 15 m", correct: true },
+{ id: "B", text: "10 m", correct: false },
+{ id: "C", text: "na hranici koncentrace PCB 115ppm", correct: false }
+]},
+{ id: 37, question: "NP23 Při zásahu s únikem PCB (polychlorované bifenyly) využívají zasahující hasiči jako ochranu", answers: [
+{ id: "A", text: "protichemický ochranný oděv přetlakový, typ 1a, v kombinaci s izolačním dýchacím přístrojem umístěným pod oděvem", correct: true },
+{ id: "B", text: "protichemický ochranný oděv typ 4- oděv těsný proti postřiku včetně filtračního dýchacího přístroje", correct: false },
+{ id: "C", text: "zásahový oděv pro hasiče včetně filtračního dýchacího přístroje s filtrem MOF", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

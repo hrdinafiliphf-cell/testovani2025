@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "OPO01 Příslušníci, zaměstnanci podniku a členové dobrovolných jednotek požární ochrany jsou při činnosti v jednotce požární ochrany podřízeni", answers: [
+{ id: "A", text: "svým velitelům jednotek, pokud nestanoví velitel zásahu jinak", correct: true },
+{ id: "B", text: "pouze veliteli zásahu", correct: false },
+{ id: "C", text: "v operačním řízení pouze veliteli zásahu, v organizačním řízení veliteli jednotky", correct: false }
+]},
+{ id: 2, question: "OPO02 Hasiči na místě zásahu", answers: [
+{ id: "A", text: "nepoužívají oděvní doplňky a předměty nošené na těle nebo při sobě, kterých není pro činnost na místě zásahu třeba a které mohou být při zásahu poškozeny nebo které mohou ohrozit jejich zdraví", correct: true },
+{ id: "B", text: "nepoužívají oděvní doplňky, které mohou být při zásahu poškozeny, přičemž prsteny, náušnice, piercing apod. Jsou povoleny", correct: false },
+{ id: "C", text: "nepoužívají předměty nošené na těle, které mohou ohrozit jejich zdraví, oděvních doplňků se zákaz netýká, přičemž se HZS zprošťuje odpovědnosti za jejich poškození", correct: false }
+]},
+{ id: 3, question: "OPO03 Nebrání-li tomu okolnosti, zajistí příslušník HZS ČR při vstupu do obydlí", answers: [
+{ id: "A", text: "přítomnost nezúčastněné osoby a bez zbytečného odkladu vyrozumí o vstupu do obydlí PČR", correct: true },
+{ id: "B", text: "přítomnost dalšího příslušníka HZS ČR a bez zbytečného odkladu vyrozumí o vstupu do obydlí PČR", correct: false },
+{ id: "C", text: "přítomnost rodinného příslušníka uživatele nebo majitele obydlí", correct: false }
+]},
+{ id: 4, question: "OPO03 Příslušník HZS ČR je oprávněn vstoupit do obydlí", answers: [
+{ id: "A", text: "má-li důvodné podezření, že je ohrožen život nebo je vážně ohroženo zdraví člověka nebo hrozí škoda na majetku, která by mohla přesáhnout částku 50 000 Kč", correct: true },
+{ id: "B", text: "jen za přítomnosti příslušníka PČR", correct: false },
+{ id: "C", text: "má-li důvodné podezření, že je ohrožen život nebo je vážně ohroženo zdraví člověka nebo hrozí škoda na majetku, která by mohla přesáhnout částku 1 000 000 Kč", correct: false }
+]},
+{ id: 5, question: "OPO04 Prověřovací cvičení se provádí za účelem", answers: [
+{ id: "A", text: "ověření připravenosti složek IZS k provádění záchranných a likvidačních prací", correct: true },
+{ id: "B", text: "předem naplánované přípravy složek IZS k provádění záchranných a likvidačních prací", correct: false },
+{ id: "C", text: "změření úrovně stresu u jednotlivých složek IZS při vyhlášení společného poplachu", correct: false }
+]},
+{ id: 6, question: "OPO04 Stálými orgány pro koordinaci složek IZS jsou", answers: [
+{ id: "A", text: "operační a informační střediska IZS, kterými jsou operační střediska HZS kraje", correct: true },
+{ id: "B", text: "centra koordinačních prací a aktivit sjednocených složek kraje", correct: false },
+{ id: "C", text: "operační a informační střediska IZS, kterými jsou operační střediska ZZS kraje", correct: false }
+]},
+{ id: 7, question: "OPO05 Součinnost mezi vedoucími složek v místě zásahu je zajišťována prostřednictvím", answers: [
+{ id: "A", text: "velitele zásahu", correct: true },
+{ id: "B", text: "krizového štábu ORP nebo kraje", correct: false },
+{ id: "C", text: "operačních středisek základních složek IZS", correct: false }
+]},
+{ id: 8, question: "OPO07 Požární poplachový plán Olomouckého kraje", answers: [
+{ id: "A", text: "je sestaven do jednotlivých stupňů poplachu podle rychlosti dojezdu jednotek PO, jejich předurčenosti a vybavení", correct: true },
+{ id: "B", text: "je sestaven do jednotlivých stupňů poplachu podle kategorií jednotek PO a jejich vybavení", correct: false },
+{ id: "C", text: "je sestaven do jednotlivých stupňů poplachu podle rychlosti dojezdu jednotek PO", correct: false }
+]},
+{ id: 9, question: "OPO09 Denní řád výkonu služby v jednotkách PO HZS OLK vydaný Pokynem KŘ stanoví v časovém rozvrhu operativní poradu velitele jednotky s příslušníky směny v čase", answers: [
+{ id: "A", text: "8:00 – 8:15", correct: true },
+{ id: "B", text: "7:30– 8:00", correct: false },
+{ id: "C", text: "8:00 – 8:30", correct: false }
+]},
+{ id: 10, question: "OPO10 Do složek IZS, pro které je platný zákon č. 361/2003 Sb, o služebním poměru příslušníků bezpečnostních sborů patří i", answers: [
+{ id: "A", text: "Policie ČR", correct: true },
+{ id: "B", text: "Český svaz ochránců přírody", correct: false },
+{ id: "C", text: "Záchranná služba", correct: false }
+]},
+{ id: 11, question: "OPO10 Problematiku služebního poměru příslušníků bezpečnostních sborů řeší", answers: [
+{ id: "A", text: "zákon č. 361/2003 Sb.", correct: true },
+{ id: "B", text: "zákon č. 261/2003 Sb.", correct: false },
+{ id: "C", text: "zákon č. 262/2006 Sb.", correct: false }
+]},
+{ id: 12, question: "OPO15 Škody na majetku HZS kraje vzniklé v souvislosti se zásahy musí být prokazatelně zadokumentovány ve", answers: [
+{ id: "A", text: "zprávě o zásahu", correct: true },
+{ id: "B", text: "knize úrazů", correct: false },
+{ id: "C", text: "strážní knize", correct: false }
+]},
+{ id: 13, question: "OPO17 Mezi opěrné body nepatří", answers: [
+{ id: "A", text: "opěrný bod pro požární sport", correct: true },
+{ id: "B", text: "opěrný bod pro olejové havárie", correct: false },
+{ id: "C", text: "opěrný bod pro záchranu osob ze zřícených budov", correct: false }
+]},
+{ id: 14, question: "OPO17 Opěrným bodem se rozumí", answers: [
+{ id: "A", text: "stanice hasičského záchranného sboru kraje, kde je dislokována technika pro provádění speciálních záchranných prací stanovených pokynem GŘ a potřebný počet hasičů pro obsluhu této techniky", correct: true },
+{ id: "B", text: "každá CPS (centrální požární stanice) HZS ČR", correct: false },
+{ id: "C", text: "stanice hasičského záchranného sboru kraje nebo jednotka SDH obce, kde je dislokována technika pro provádění speciálních záchranných prací stanovených pokynem GŘ", correct: false }
+]},
+{ id: 15, question: "OPO18 Na místě zásahu je psycholog podřízen", answers: [
+{ id: "A", text: "veliteli zásahu", correct: true },
+{ id: "B", text: "hejtmanovi kraje", correct: false },
+{ id: "C", text: "řediteli ÚO", correct: false }
+]},
+{ id: 16, question: "OPO18 Povolat psychologa v rámci operačního řízení může", answers: [
+{ id: "A", text: "OPIS na žádost řídícího důstojníka, nebo velitele zásahu", correct: true },
+{ id: "B", text: "každý hasič, který ho potřebuje", correct: false },
+{ id: "C", text: "ředitel ÚO", correct: false }
+]},
+{ id: 17, question: "OPO19 Pro výkon služby členů jednotek SDH obcí platí", answers: [
+{ id: "A", text: "zákon o požární ochraně a jeho prováděcí předpisy a řád výkonu služby vydaný GŘ HZS", correct: true },
+{ id: "B", text: "požární řád obce vydaný obecně závaznou vyhláškou", correct: false },
+{ id: "C", text: "zákon o požární ochraně s jeho prováděcími předpisy a v omezené míře i zákon o HZS", correct: false }
+]},
+{ id: 18, question: "OPO19 Výši odměny pro člena jednotky SDH obce stanoví", answers: [
+{ id: "A", text: "obec, která jednotku zřizuje", correct: true },
+{ id: "B", text: "ministerstvo financí nařízením vlády k odměňování členů jednotek SDH vybraných obcí", correct: false },
+{ id: "C", text: "ministerstvo vnitra v metodice ke zřizování jednotek SDH obcí", correct: false }
+]},
+{ id: 19, question: "OPO20 Do speciální fyzické přípravy se zařazují disciplíny požárního sportu", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "dle rozhodnutí velitele směny", correct: false },
+{ id: "C", text: "ne", correct: false }
+]},
+{ id: 20, question: "OPO20 Zkouška fyzické zdatnosti musí být provedena", answers: [
+{ id: "A", text: "během jednoho dne", correct: true },
+{ id: "B", text: "během tří dnů", correct: false },
+{ id: "C", text: "dle požadavku zkoušejícího", correct: false }
+]},
+{ id: 21, question: "OPO22 Cvičení se dělí na", answers: [
+{ id: "A", text: "prověřovací a taktické", correct: true },
+{ id: "B", text: "námětové a strategické", correct: false },
+{ id: "C", text: "plánované a tajné", correct: false }
+]},
+{ id: 22, question: "OPO29 Kdo může provádět potápěčské činnosti", answers: [
+{ id: "A", text: "příslušník HZS ČR, který má specializaci pro práci pod vodní hladinou", correct: true },
+{ id: "B", text: "příslušník HZS ČR, který má absolvovaný NOV", correct: false },
+{ id: "C", text: "příslušník HZS ČR, který má specializaci pro práci nad vodní hladinou", correct: false }
+]},
+{ id: 23, question: "OPO29 Potápěčská skupina se skládá z", answers: [
+{ id: "A", text: "vedoucího skupiny, potápěče, návodčího a jistícího potápěče", correct: true },
+{ id: "B", text: "vedoucího skupiny, potápěče a jistícího potápěče", correct: false },
+{ id: "C", text: "velitele družstva, potápěče, průvodčího a jistícího potápěče", correct: false }
+]},
+{ id: 24, question: "OPO30 Příslušník je povinen při plnění úkolu HZS dbát", answers: [
+{ id: "A", text: "aby jiné osobě nevznikla bezdůvodná újma a aby případný dopad do jejích práv a svobod nepřekročil míru nutnou k dosažení účelu sledovaného plněným úkolem", correct: true },
+{ id: "B", text: "aby jiné osobě nevznikla bezdůvodná újma, přičemž nemusí dbát na dopad do jejích práv a svobod", correct: false },
+{ id: "C", text: "především na dobré vztahy s veřejností [pí ár]", correct: false }
+]},
+{ id: 25, question: "OPO30 Příslušník je v době mimo službu povinen provést", answers: [
+{ id: "A", text: "opatření vedoucí k bezprostřední záchraně života nebo zdraví člověka anebo majetku", correct: true },
+{ id: "B", text: "ohlášení mimořádné události a podílet se na její likvidaci", correct: false },
+{ id: "C", text: "zásah společně s přivolanými jednotkami PO a složkami IZS", correct: false }
+]},
+{ id: 26, question: "OPO33 Hasič s oranžovým páskem a s černým nápisem na přilbě je", answers: [
+{ id: "A", text: "velitel jednotky SDH obce", correct: true },
+{ id: "B", text: "hasič jednotky HZS podniku", correct: false },
+{ id: "C", text: "hasič jednotky SDH obce", correct: false }
+]},
+{ id: 27, question: "OPO33 Označení hasičů u zásahu v souladu s pokynem GŘ se provádí", answers: [
+{ id: "A", text: "páskami, vestami a samolepkami na přilbách", correct: true },
+{ id: "B", text: "páskami, případně vestami podle přítomnosti služebního funkcionáře a médií na místě zásahu", correct: false },
+{ id: "C", text: "v době kdy není snížená viditelnost pouze samolepkami na přilbách", correct: false }
+]},
+{ id: 28, question: "OPO34 Záchranný plán poskytnutí přeshraniční pomoci řeší", answers: [
+{ id: "A", text: "vzájemnou pomoc v případě katastrof, živelních pohrom a jiných MU", correct: true },
+{ id: "B", text: "vzájemnou pomoc při nákupu požární techniky", correct: false },
+{ id: "C", text: "vzájemnou pomoc při obchodování v bezcelní zóně", correct: false }
+]},
+{ id: 29, question: "OPO35 Jaký kmitočet se používá pro součinnostní komunikace v místě zásahu", answers: [
+{ id: "A", text: "kmitočet „S“", correct: true },
+{ id: "B", text: "kmitočet „I“", correct: false },
+{ id: "C", text: "kmitočet „K“", correct: false }
+]},
+{ id: 30, question: "OPO36 Jaké akreditované kurzy poskytuje Vodní záchranná služba ČČK", answers: [
+{ id: "A", text: "plavčík, mistr plavčí a záchranář", correct: true },
+{ id: "B", text: "plavčík, mistr plavčí a vodník", correct: false },
+{ id: "C", text: "plavčík, strojník malého plavidla a vodní záchranář", correct: false }
+]},
+{ id: 31, question: "OPO36 Kdo povolává Vodní záchrannou službu ČČK k mimořádné události na vodních plochách", answers: [
+{ id: "A", text: "operační střediska HZS, ZZS, PČR a Státní plavební správa", correct: true },
+{ id: "B", text: "Český svaz rybářů", correct: false },
+{ id: "C", text: "dispečink Vodní záchranné služby ČČK", correct: false }
+]},
+{ id: 32, question: "OPO38 Speleologie je", answers: [
+{ id: "A", text: "obor zabývající se především výzkumem jeskyní", correct: true },
+{ id: "B", text: "obor zabývající se záchranou v jeskyních", correct: false },
+{ id: "C", text: "ostatní složka IZS spolupracující s HZS k využití jeskyní pro nouzové ubytování", correct: false }
+]},
+{ id: 33, question: "OPO38 Záchranářská kynologie je", answers: [
+{ id: "A", text: "kynologický obor, jehož posláním je výcvik a nasazení psovoda se psem vedoucí k nalezení pohřešovaných osob v sutinách, ve volném terénu, lavinách, pod vodní hladinou apod. Za využití čichových schopností psa", correct: true },
+{ id: "B", text: "kynologický obor, jehož posláním je vedení psa k nasazení s libovolným záchranářem k dosažení různých cílů dle dané potřeby záchranáře", correct: false },
+{ id: "C", text: "kynologický obor, jehož posláním je výchova psa k nasazení při zahraničních misích především pro hledání pamlsků na nepřístupných místech", correct: false }
+]},
+{ id: 34, question: "OPO39 Bod záchrany je", answers: [
+{ id: "A", text: "místo v krajině označené tabulkou s unikátním kódem", correct: true },
+{ id: "B", text: "místo na mapě se zvláštním historickým významem", correct: false },
+{ id: "C", text: "místo, kde může přistát vrtulník", correct: false }
+]},
+{ id: 35, question: "OPO41 Obslužné pole požární ochrany (OPPO)", answers: [
+{ id: "A", text: "slouží mimo jiné i k vypnutí akustických sirén při spuštění požárního poplachu v objektu chráněném elektrickou požární signalizací", correct: true },
+{ id: "B", text: "se nachází pouze v objektech, které nejsou chráněny elektrickou požární signalizací", correct: false },
+{ id: "C", text: "slouží k identifikaci místa vzniku požáru v objektu chráněném elektrickou požární signalizací", correct: false }
+]},
+{ id: 36, question: "OPO42 Z hlediska času se psychosociální pomoc dělí na", answers: [
+{ id: "A", text: "první psychická pomoc, střednědobá a dlouhodobá pomoc", correct: true },
+{ id: "B", text: "následující psychosociální pomoc", correct: false },
+{ id: "C", text: "první a poslední psychosociální pomoc", correct: false }
+]},
+{ id: 37, question: "OPO55 Členové jednotek SDH u zásahu", answers: [
+{ id: "A", text: "nesmí pořizovat ani zveřejňovat obrazové záznamy bez souhlasu dotčených osob", correct: true },
+{ id: "B", text: "mohou pořizovat i zveřejňovat obrazové záznamy osob", correct: false },
+{ id: "C", text: "mohou pořizovat, ale nesmí zveřejňovat obrazové záznamy osob", correct: false }
+]},
+{ id: 38, question: "OPO55 Osoby, které poskytují na základě výzvy příslušníka HZS ČR u zásahu osobní pomoc", answers: [
+{ id: "A", text: "musí zachovávat mlčenlivost", correct: true },
+{ id: "B", text: "musí zachovávat mlčenlivost po dobu plnění úkolu", correct: false },
+{ id: "C", text: "nemusí zachovávat mlčenlivost", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

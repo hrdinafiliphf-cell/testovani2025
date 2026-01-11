@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "CHTS00 Hasič s osobní spotřebou vzduchu 45 l/min. Používá dýchací přístroj s tlakovou lahví o objemu 6,9 litrů. Manometr ukazuje 100 bar. Kolik minut zbývá do úplného vyčerpání přístroje:", answers: [
+{ id: "A", text: "zhruba 15 minut", correct: true },
+{ id: "B", text: "zhruba 10 minut", correct: false },
+{ id: "C", text: "zhruba 20 minut", correct: false }
+]},
+{ id: 2, question: "CHTS05 Jaká je hodnota středotlaku u přetlakových dýchacích přístrojů", answers: [
+{ id: "A", text: "6-10 bar", correct: true },
+{ id: "B", text: "10-14 bar", correct: false },
+{ id: "C", text: "8-12 bar", correct: false }
+]},
+{ id: 3, question: "CHTS05 Jaká je hodnota varovného signálu", answers: [
+{ id: "A", text: "50-60 bar", correct: true },
+{ id: "B", text: "40-50 bar", correct: false },
+{ id: "C", text: "60-70 bar", correct: false }
+]},
+{ id: 4, question: "CHTS06 U nepoužívaných naplněných tlakových lahví určených pro dýchací přístroje se provádí výměna vzduchu", answers: [
+{ id: "A", text: "nejméně jednou za 12 měsíců", correct: true },
+{ id: "B", text: "nejméně jednou za 24 měsíců", correct: false },
+{ id: "C", text: "nejméně jednou za 36 měsíců", correct: false }
+]},
+{ id: 5, question: "CHTS07 Mezi hlavní krizové situace na místě zásahu mimo jiné patří", answers: [
+{ id: "A", text: "vydýchaná láhev", correct: true },
+{ id: "B", text: "poškozená rukavice", correct: false },
+{ id: "C", text: "špatné osvětlení na místě zásahu", correct: false }
+]},
+{ id: 6, question: "CHTS07 Všeobecná pravidla k řešení nouzových situací", answers: [
+{ id: "A", text: "nepodléhat panice, nahlásit veliteli, vyřešit náhradní dýchání (napojit na druhý vývod), v zakouřeném prostoru, lehnout si na zem, odpojit PA, masku ponechat, chránit obličej, je-li DP vybaven, spustit osobní alarm, opustit nebezpečný prostor, neutíkat", correct: true },
+{ id: "B", text: "zůstat v místě a neřešit žádnou situaci", correct: false },
+{ id: "C", text: "zjistit závadu na DP", correct: false }
+]},
+{ id: 7, question: "CHTS09 Dýchací krizí označujeme jev, kdy", answers: [
+{ id: "A", text: "hasič dýchá mělce (povrchově) a je způsobena podílem mrtvého prostoru na objemu jednoho nadechnutí", correct: true },
+{ id: "B", text: "hasič dýchá vzduch o vysoké koncentraci kyslíku v ovzduší", correct: false },
+{ id: "C", text: "hasič správně dýchá, ale přístroj mu nedává dostatečné množství vzduchu", correct: false }
+]},
+{ id: 8, question: "CHTS10 Hodnota smrtelné koncentrace při nadýchání se kyanovodíkem je", answers: [
+{ id: "A", text: "0,009 % obj.", correct: true },
+{ id: "B", text: "0,5 % obj.", correct: false },
+{ id: "C", text: "0,8 % obj.", correct: false }
+]},
+{ id: 9, question: "CHTS10 Hodnota smrtelné koncentrace při nadýchání se oxidem uhelnatým je", answers: [
+{ id: "A", text: "0,4 % obj.", correct: true },
+{ id: "B", text: "0,8 % obj.", correct: false },
+{ id: "C", text: "2 % obj.", correct: false }
+]},
+{ id: 10, question: "CHTS11 Jedovaté látky v ovzduší měříme zpravidla pomocí", answers: [
+{ id: "A", text: "toximetrů", correct: true },
+{ id: "B", text: "explozimetrů", correct: false },
+{ id: "C", text: "oxymetrů", correct: false }
+]},
+{ id: 11, question: "CHTS12 Filtrační dýchací přístroje lze použít jen v prostředí, kde je", answers: [
+{ id: "A", text: "koncentrace kyslíku min. 17% obj. A známý typ škodliviny", correct: true },
+{ id: "B", text: "koncentrace kyslíku 21% obj.", correct: false },
+{ id: "C", text: "známá koncentrace a druh škodliviny", correct: false }
+]},
+{ id: 12, question: "CHTS14 Přetlakové dýchací přístroje se od rovnotlakých liší", answers: [
+{ id: "A", text: "jsou dvoustupňové – první redukce vysokého tlaku vzduchu na tlak střední probíhá v redukčním ventilu (1.stupeň) a redukce středního tlaku na tlak nízký se uskutečňuje v plicní automatice (2.stupeň)", correct: true },
+{ id: "B", text: "přetlakové přístroje mají dva redukční ventily", correct: false },
+{ id: "C", text: "rovnotlaké přístroje mají dva redukční ventily", correct: false }
+]},
+{ id: 13, question: "CHTS15 Křísící přístroje se dělí na", answers: [
+{ id: "A", text: "ruční, ústní, poloautomatická a automatická", correct: true },
+{ id: "B", text: "ruční, automatické, poloautomatické, laické", correct: false },
+{ id: "C", text: "ruční, ústní, poloautomatická a procesorově ovládaná", correct: false }
+]},
+{ id: 14, question: "CHTS15 Tlaková láhev u přístroje Saturn OXY", answers: [
+{ id: "A", text: "je plněna 100 % kyslíkem", correct: true },
+{ id: "B", text: "je plněna směsí kyslíku a medicinálního vzduchu", correct: false },
+{ id: "C", text: "je plněna směsí medicinálního vzduchu, dusíku a zvýšeného množství kyslíku", correct: false }
+]},
+{ id: 15, question: "CHTS16 Při svlékání protichemického ochranného oděvu po dekontaminaci", answers: [
+{ id: "A", text: "považujeme oděv stále jako částečně kontaminovaný, a proto dbáme na zásadu nezasahovat vnějšími rukavicemi do vnitřního prostoru oděvu", correct: true },
+{ id: "B", text: "považujeme oděv i jeho součásti za čistý, a proto nezáleží na způsobu svlékání, protože nemůže dojít ke kontaminaci vysvlékaného", correct: false },
+{ id: "C", text: "považujeme oděv i rukavice za čisté, částečně kontaminovaná může být jen obuv, proto nezáleží na způsobu svlékání svrchní části oděvu, protože nehrozí zanesení kontaminace", correct: false }
+]},
+{ id: 16, question: "CHTS18 Explozimetry HZS OLK jsou kalibrovány na metan, který je hlavní složkou zemního plynu. Dolní mez výbušnosti (DMV, LEL) metanu je přibližně", answers: [
+{ id: "A", text: "5 % objemových", correct: true },
+{ id: "B", text: "17 % objemových", correct: false },
+{ id: "C", text: "50 % objemových", correct: false }
+]},
+{ id: 17, question: "CHTS18 V případě úniku směsi propanu a butanu ze zásobníku LPG budeme explozimetrem vyhledávat výbušné koncentrace", answers: [
+{ id: "A", text: "při zemi a v prohlubních pod úrovní terénu (propan-butan je těžší než vzduch)", correct: true },
+{ id: "B", text: "v úrovni hrudníku, plyn bývá rovnoměrně rozptýlen v ovzduší (propan-butan má stejnou hmotnost jako vzduch)", correct: false },
+{ id: "C", text: "v uzavřených prostorách pod stropem (propan-butan je lehčí než vzduch)", correct: false }
+]},
+{ id: 18, question: "CHTS21 Látka na inhibici (snížení aktivity) kyseliny akrylové má název", answers: [
+{ id: "A", text: "phenothiazin", correct: true },
+{ id: "B", text: "hydroxid sodný", correct: false },
+{ id: "C", text: "hydroxid vápenatý", correct: false }
+]},
+{ id: 19, question: "CHTS22 Zásahové obleky se nesmí prát při vyšší teplotě než", answers: [
+{ id: "A", text: "60°C", correct: true },
+{ id: "B", text: "40°C", correct: false },
+{ id: "C", text: "90°C", correct: false }
+]},
+{ id: 20, question: "CHTS23 Agregáty na lehkou pěnu patří mezi požární příslušenství", answers: [
+{ id: "A", text: "pěnotvorné", correct: true },
+{ id: "B", text: "speciální", correct: false },
+{ id: "C", text: "technické", correct: false }
+]},
+{ id: 21, question: "CHTS24 Co lze hasit hasícími přístroji, které jsou určené k hašení požáru třídy F", answers: [
+{ id: "A", text: "jedlé oleje a tuky", correct: true },
+{ id: "B", text: "hořící kovy", correct: false },
+{ id: "C", text: "zařízení pod elektrickým napětím", correct: false }
+]},
+{ id: 22, question: "CHTS26 Lze využít nízkotlaký vak i u stabilizace výkopů jako opěrný prvek bednících desek", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "ne", correct: false },
+{ id: "C", text: "pouze dle rozhodnutí ŘD kraje, který musí být přítomen na místě zásahu", correct: false }
+]},
+{ id: 23, question: "CHTS27 Zóna 0 je", answers: [
+{ id: "A", text: "prostor, ve kterém je výbušná plynná atmosféra přítomna trvale", correct: true },
+{ id: "B", text: "prostor, ve kterém může vzniknout výbušná plynná atmosféra", correct: false },
+{ id: "C", text: "prostor, ve kterém výbušná plynná atmosféra nemůže za normálního provozu vzniknout", correct: false }
+]},
+{ id: 24, question: "CHTS27 Zóna 2 je", answers: [
+{ id: "A", text: "prostor, ve kterém výbušná plynná atmosféra nemůže za normálního provozu vzniknout", correct: true },
+{ id: "B", text: "prostor, ve kterém je výbušná plynná atmosféra přítomna trvale", correct: false },
+{ id: "C", text: "prostor, ve kterém může vzniknout výbušná plynná atmosféra", correct: false }
+]},
+{ id: 25, question: "CHTS29 Hlavní hasební účinek vody je", answers: [
+{ id: "A", text: "ochlazovací", correct: true },
+{ id: "B", text: "dusivý", correct: false },
+{ id: "C", text: "zřeďovací", correct: false }
+]},
+{ id: 26, question: "CHTS29 Polární kapaliny jsou", answers: [
+{ id: "A", text: "mísitelné vodou", correct: true },
+{ id: "B", text: "kapaliny vyskytující se za polárním kruhem", correct: false },
+{ id: "C", text: "nemísitelné vodou", correct: false }
+]},
+{ id: 27, question: "CHTS30 Primární hasební efekt hasící pěny je", answers: [
+{ id: "A", text: "izolační", correct: true },
+{ id: "B", text: "inertní", correct: false },
+{ id: "C", text: "ochlazovací", correct: false }
+]},
+{ id: 28, question: "CHTS31 Jaké jsou hlavní druhy hasících prášků", answers: [
+{ id: "A", text: "BC, ABC, M", correct: true },
+{ id: "B", text: "ABC, F, DE", correct: false },
+{ id: "C", text: "AD, MB", correct: false }
+]},
+{ id: 29, question: "CHTS32 Hašení pomocí inertních plynů je založeno na principu", answers: [
+{ id: "A", text: "ředění", correct: true },
+{ id: "B", text: "inhibice", correct: false },
+{ id: "C", text: "izolační", correct: false }
+]},
+{ id: 30, question: "CHTS33 Předností kalových čerpadel je", answers: [
+{ id: "A", text: "schopnost čerpat znečištěnou vodu, respektive různé kapaliny (závisí na druhu čerpadla)", correct: true },
+{ id: "B", text: "čerpat pouze čistou vodu", correct: false },
+{ id: "C", text: "nemá žádné přednosti", correct: false }
+]},
+{ id: 31, question: "CHTS34 Agregáty na lehkou pěnu jsou určeny", answers: [
+{ id: "A", text: "primárně k vytvoření lehké pěny jako hasiva, některé typy lze použít i jako odsavače kouře (vždy dle návodu výrobce)", correct: true },
+{ id: "B", text: "k vytvoření pěny jako náplň do pěnových RHP", correct: false },
+{ id: "C", text: "k vytvoření těžké, střední i lehké pěny", correct: false }
+]},
+{ id: 32, question: "CHTS34 Hnací jednotkou agregátů na lehkou pěnu je", answers: [
+{ id: "A", text: "přívod tlakové vody, spalovací motor, popř. Elektromotor", correct: true },
+{ id: "B", text: "je vždy diesel agregát, který je součástí dodávky agregátu na lehkou pěnu", correct: false },
+{ id: "C", text: "plynový na spálené plyny (napojený od CAS)", correct: false }
+]},
+{ id: 33, question: "CHTS35 Do jaké výšky můžu použít seskokovou matraci SP 23 MILAGRO 2", answers: [
+{ id: "A", text: "maximálně do 23 m", correct: true },
+{ id: "B", text: "maximálně do 10 m", correct: false },
+{ id: "C", text: "maximálně do 50 m", correct: false }
+]},
+{ id: 34, question: "CHTS37 Jednoznačné závazné značení obsahu plynu", answers: [
+{ id: "A", text: "je provedeno informační nálepkou nebezpečného zboží", correct: true },
+{ id: "B", text: "je označeno příslušnou barvou na vrchlíku láhve", correct: false },
+{ id: "C", text: "je vyraženo na vrchlíku láhve", correct: false }
+]},
+{ id: 35, question: "CHTS38 Osoba, u které je podezření z kontaktu s nebezpečnou látkou by se měla", answers: [
+{ id: "A", text: "podrobit lékařskému vyšetření, a i nadále sledovat svůj zdravotní stav", correct: true },
+{ id: "B", text: "nahlásit u osoby školící bezpečnost práce a danou skutečnost zapsat do knihy úrazů", correct: false },
+{ id: "C", text: "snažit zajistit nebezpečnou látku pro laboratorní expertízu", correct: false }
+]},
+{ id: 36, question: "CHTS39 Formulář pro evidenci pohybu osob v nebezpečné zóně by měl obsahovat", answers: [
+{ id: "A", text: "jména a čísla vstupujících osob, vstupní (výstupní) tlak v lahvi, vstupní (výstupní) čas, případné poznámky", correct: true },
+{ id: "B", text: "jména a čísla vstupujících osob, vstupní (výstupní) tlak v lahvi, vstupní čas, případné poznámky", correct: false },
+{ id: "C", text: "jména a čísla vstupujících osob, vstupní (výstupní) tlak v lahvi, výstupní čas, případné poznámky", correct: false }
+]},
+{ id: 37, question: "CHTS39 Pokud na DP Dräger (6,8 litru) ukazatel tlaku vzduchu signalizuje tlak 100 barů a je vykonávána těžká práce se spotřebou 45 litrů vzduchu za minutu, zbývá do úplného vyčerpání přístroje", answers: [
+{ id: "A", text: "15 minut", correct: true },
+{ id: "B", text: "10 minut", correct: false },
+{ id: "C", text: "20 minut", correct: false }
+]},
+{ id: 38, question: "CHTS40 Jak často se musí provádět praktický výcvik se vzduchovým dýchacím přístrojem", answers: [
+{ id: "A", text: "1x za 3 měsíce", correct: true },
+{ id: "B", text: "1x za 12 měsíců", correct: false },
+{ id: "C", text: "1x za 6 měsíců", correct: false }
+]},
+{ id: 39, question: "CHTS40 Jaká je minimální hodnota tlaku v tlakové láhvi u přetlakového dýchacího přístroje před jeho použitím", answers: [
+{ id: "A", text: "nejméně 270 barů", correct: true },
+{ id: "B", text: "nejméně 250 barů", correct: false },
+{ id: "C", text: "nejméně 280 barů", correct: false }
+]},
+{ id: 40, question: "CHTS41 Dle řádu chemické služby musí uživatel, který je určen k používání protichemických ochranných oděvů, použít oděv v rámci zásahu nebo odborné přípravy", answers: [
+{ id: "A", text: "1× za 6 měsíců", correct: true },
+{ id: "B", text: "1× za měsíc", correct: false },
+{ id: "C", text: "1× za rok", correct: false }
+]},
+{ id: 41, question: "CHTS41 V organizačním řízení zodpovídá za provádění odborné přípravy a praktického výcviku ve stanovených termínech", answers: [
+{ id: "A", text: "velitel", correct: true },
+{ id: "B", text: "každý hasič sám za sebe", correct: false },
+{ id: "C", text: "technik chemické služby", correct: false }
+]},
+{ id: 42, question: "CHTS42 Detehit slouží k detekci", answers: [
+{ id: "A", text: "nervově-paralytických BCHL", correct: true },
+{ id: "B", text: "všech BCHL", correct: false },
+{ id: "C", text: "zpuchýřujících BCHL", correct: false }
+]},
+{ id: 43, question: "CHTS42 Sarin, soman, tabun patří mezi látky", answers: [
+{ id: "A", text: "nervově – paralytické", correct: true },
+{ id: "B", text: "jedovaté", correct: false },
+{ id: "C", text: "zpuchýřující", correct: false }
+]},
+{ id: 44, question: "CHTS43 Bezkontaktními teploměry (pyrometry) lze zjistit teplotu", answers: [
+{ id: "A", text: "bodově a jen na pevných částech", correct: true },
+{ id: "B", text: "bodově a prostoru současně", correct: false },
+{ id: "C", text: "prostoru např. v zakouřeném objektu", correct: false }
+]},
+{ id: 45, question: "CHTS43 Termokamerou lze za daných podmínek mimo jiné např. Zjistit", answers: [
+{ id: "A", text: "množství tekutiny převážené v cisterně", correct: true },
+{ id: "B", text: "stupeň námrazy na vozovce", correct: false },
+{ id: "C", text: "teplotu těla přehřátého zasahujícího hasiče", correct: false }
+]},
+{ id: 46, question: "CHTS44 Pracoviště chemické služby se dělí na", answers: [
+{ id: "A", text: "základní pracoviště a podpůrné pracoviště", correct: true },
+{ id: "B", text: "prostor pro plnění tlakových lahví a zkušební prostor", correct: false },
+{ id: "C", text: "základní pracoviště a zkušební prostor", correct: false }
+]},
+{ id: 47, question: "CHTS44 Pravidelnou údržbu, opravy a kontroly, vedení příslušné dokumentace provádí", answers: [
+{ id: "A", text: "hasič technik – chemická služba", correct: true },
+{ id: "B", text: "uživatel prostředku", correct: false },
+{ id: "C", text: "velitel jednotky", correct: false }
+]},
+{ id: 48, question: "CHTS45 Prostředky Technické služby se zařazují", answers: [
+{ id: "A", text: "do provozu nebo mimo provoz", correct: true },
+{ id: "B", text: "do provozu a do zálohy a mimo provoz", correct: false },
+{ id: "C", text: "do provozu, mimo provoz a prostředky pro výcvik", correct: false }
+]},
+{ id: 49, question: "CHTS45 Revize prostředků TS se provádí", answers: [
+{ id: "A", text: "v intervalech stanovených výrobcem nebo právním předpisem", correct: true },
+{ id: "B", text: "jednou ročně bez ohledu na interval výrobce", correct: false },
+{ id: "C", text: "vždy po použití prostředku", correct: false }
+]},
+{ id: 50, question: "CHTS47 Suché obleky pro práci ve vodě", answers: [
+{ id: "A", text: "fungují na principu úplné izolace těla od okolní kapaliny", correct: true },
+{ id: "B", text: "jsou vhodné i pro sportovní potápění", correct: false },
+{ id: "C", text: "nikdy se nesmí namočit uvnitř", correct: false }
+]},
+{ id: 51, question: "CHTS54 Lafetové proudnice (monitory) slouží", answers: [
+{ id: "A", text: "pro podstatně větší průtočná množství hasiva než proudnice ruční", correct: true },
+{ id: "B", text: "pouze k hašení polních požárů", correct: false },
+{ id: "C", text: "pouze k hašení polních požárů a průmyslových objektů", correct: false }
+]},
+{ id: 52, question: "CHTS54 Reakční síla u lafetových proudnic (monitorů) je", answers: [
+{ id: "A", text: "značně vyšší než u proudnic ručních", correct: true },
+{ id: "B", text: "nižší než u proudnic ručních", correct: false },
+{ id: "C", text: "stejná jako u proudnic ručních", correct: false }
+]},
+{ id: 53, question: "CHTS55 Odběr vzorků prováděný jednotkami PO podle metodiky je určen", answers: [
+{ id: "A", text: "pouze pro potřeby zásahu", correct: true },
+{ id: "B", text: "pro bezpečnostního technika", correct: false },
+{ id: "C", text: "pro ohlašovatele události", correct: false }
+]},
+{ id: 54, question: "CHTS55 Průvodku vzorku vyplňuje", answers: [
+{ id: "A", text: "hasič technik – chemická služba", correct: true },
+{ id: "B", text: "příslušník policie ČR", correct: false },
+{ id: "C", text: "velitel zásahu", correct: false }
+]},
+{ id: 55, question: "CHTS56 Obleky proti sálavému teplu dělíme na", answers: [
+{ id: "A", text: "lehké, střední, těžké", correct: true },
+{ id: "B", text: "podtlakové a přetlakové", correct: false },
+{ id: "C", text: "s použitím IDP a bez použití IDP", correct: false }
+]},
+{ id: 56, question: "CHTS57 Elektrické zařízení nízkého napětí může vypnout", answers: [
+{ id: "A", text: "velitelem určený hasič", correct: true },
+{ id: "B", text: "odborný pracovník na základě příkazu B", correct: false },
+{ id: "C", text: "výhradně pracovník poruchové služby provozovatele rozvodné sítě", correct: false }
+]},
+{ id: 57, question: "CHTS57 Napětí baterie elektromobilu indikátor napětí Unitest VT 10", answers: [
+{ id: "A", text: "není schopen detekovat", correct: true },
+{ id: "B", text: "indikuje přerušovaným tónem a blikáním červené kontrolky", correct: false },
+{ id: "C", text: "indikuje trvalým tónem", correct: false }
+]},
+{ id: 58, question: "CHTS58 Laserový dálkoměr pracuje na principu", answers: [
+{ id: "A", text: "vysílání laserových paprsků", correct: true },
+{ id: "B", text: "vysílání radiových vln", correct: false },
+{ id: "C", text: "zvukového odrazu", correct: false }
+]},
+{ id: 59, question: "CHTS59 Modrá barva na univerzálním indikátorovém papírku ph znamená, že zkoumaný roztok je", answers: [
+{ id: "A", text: "zásaditý", correct: true },
+{ id: "B", text: "kyselý", correct: false },
+{ id: "C", text: "neutrální", correct: false }
+]},
+{ id: 60, question: "CHTS60 Co je to hydrofobní sorbent", answers: [
+{ id: "A", text: "sorbent, který nepřijímá vodu", correct: true },
+{ id: "B", text: "sorbent, který neplave na vodní hladině", correct: false },
+{ id: "C", text: "sorbent, který přijímá vodu", correct: false }
+]},
+{ id: 61, question: "CHTS60 Jaké prostředky lze použít pro odběr plynných vzorků", answers: [
+{ id: "A", text: "nasávač nebo CHP 71", correct: true },
+{ id: "B", text: "multidetektor GasAlertMicro 5", correct: false },
+{ id: "C", text: "nerezovou odměrku", correct: false }
+]},
+{ id: 62, question: "CHTS61 Látka s PH 1 je", answers: [
+{ id: "A", text: "kyselina", correct: true },
+{ id: "B", text: "neutrální", correct: false },
+{ id: "C", text: "zásada", correct: false }
+]},
+{ id: 63, question: "CHTS61 Neutralizace je", answers: [
+{ id: "A", text: "reakce kyseliny a zásady, kdy vzniká sůl kyseliny a voda", correct: true },
+{ id: "B", text: "reakce dvou kyselin, při které vzniká zásada", correct: false },
+{ id: "C", text: "reakce zásady a vody, při které vzniká kyselina", correct: false }
+]},
+{ id: 64, question: "CHTS62 Meze výbušnosti se pro páry a plyny hořlavých kapalin udávají v", answers: [
+{ id: "A", text: "objemových procentech", correct: true },
+{ id: "B", text: "kg/m3", correct: false },
+{ id: "C", text: "m/s", correct: false }
+]},
+{ id: 65, question: "CHTS62 Prostředek určený do zóny 0 lze užít v prostředí", answers: [
+{ id: "A", text: "kde je častý nebo trvalý výskyt výbušné atmosféry (více než 1000 hodin ročně)", correct: true },
+{ id: "B", text: "kde se výskyt výbušné atmosféry předpokládá pouze za abnormálních stavů nebo jen krátkodobě může vzniknout výbušná atmosféra (třeba i několik vteřin", correct: false },
+{ id: "C", text: "kde vznik výbušné atmosféry předpokládá za normálního provozu zařízení (více než 10 hodin ročně, méně než 1000 hodin ročně)", correct: false }
+]},
+{ id: 66, question: "CHTS64 Barevné skvrny, které se objeví bezprostředně po styku s látkou na PP-3 papírku indikují", answers: [
+{ id: "A", text: "přítomnost bojové chemické látky", correct: true },
+{ id: "B", text: "nesprávné provedení měření Ph", correct: false },
+{ id: "C", text: "přítomnost látky zásadité", correct: false }
+]},
+{ id: 67, question: "CHTS64 Vyhodnocení detekčního papírku DETEHIT - vzorek neobsahuje nervově paralytické látky", answers: [
+{ id: "A", text: "se detekční tkanina zabarví žlutě jako ethalon,", correct: true },
+{ id: "B", text: "měření bylo provedeno nesprávným způsobem", correct: false },
+{ id: "C", text: "vzorek obsahuje nervově paralytické látky", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

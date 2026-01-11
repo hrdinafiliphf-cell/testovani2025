@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "PP06 Co je to kriminalistické ohnisko", answers: [
+{ id: "A", text: "je to místo faktického vzniku požáru", correct: true },
+{ id: "B", text: "je to místo nejintenzivnějšího hoření", correct: false },
+{ id: "C", text: "je to místo prvního zpozorování požáru určitou osobou", correct: false }
+]},
+{ id: 2, question: "PP20 Mezi pasivní prvky pro zajištění požární bezpečnosti staveb patří", answers: [
+{ id: "A", text: "požární stěna", correct: true },
+{ id: "B", text: "autonomní hlásič kouře", correct: false },
+{ id: "C", text: "nouzové osvětlení", correct: false }
+]},
+{ id: 3, question: "PP21 Vzduchotechnická zařízení se navrhují a realizují", answers: [
+{ id: "A", text: "tak, aby se jimi nebo po nich nemohl šířit požár nebo jeho zplodiny do jiných požárních úseků.", correct: true },
+{ id: "B", text: "bez ohledu na rozšíření požáru nebo jeho zplodin.", correct: false },
+{ id: "C", text: "tak, aby se jimi nebo po nich nemohl šířit požár nebo jeho zplodiny v rámci požárního úseku.", correct: false }
+]},
+{ id: 4, question: "PP22 Kolem budovy vzniká prostor, ve kterém je nebezpečí přenesení požáru sáláním tepla nebo padajícími hořícími částmi konstrukce a nazývá se", answers: [
+{ id: "A", text: "požárně nebezpečný prostor", correct: true },
+{ id: "B", text: "odstupová vzdálenost", correct: false },
+{ id: "C", text: "troskový stín", correct: false }
+]},
+{ id: 5, question: "PP22 Mezi vyhrazené požárně bezpečnostní zařízení patří", answers: [
+{ id: "A", text: "elektrická požární signalizace", correct: true },
+{ id: "B", text: "autonomní hlásič kouře", correct: false },
+{ id: "C", text: "nouzové osvětlení", correct: false }
+]},
+{ id: 6, question: "PP25 Vnitřní zásahovou cestu tvoří", answers: [
+{ id: "A", text: "chráněná úniková cesta typu B nebo C", correct: true },
+{ id: "B", text: "požární lávky", correct: false },
+{ id: "C", text: "požární žebříky", correct: false }
+]},
+{ id: 7, question: "PP26 Dokument, řešící pouze problematiku požární bezpečnost stavby se nazývá", answers: [
+{ id: "A", text: "Požárně bezpečnostní řešení", correct: true },
+{ id: "B", text: "Požární expertízní zpráva", correct: false },
+{ id: "C", text: "Souhrnná technická zpráva", correct: false }
+]},
+{ id: 8, question: "PP27 Elektrická požární signalizace slouží k", answers: [
+{ id: "A", text: "včasnému zjištění vznikajícího požáru", correct: true },
+{ id: "B", text: "lokalizaci a uhašení vznikajícího požáru", correct: false },
+{ id: "C", text: "odvětrání zplodin hoření při požáru", correct: false }
+]},
+{ id: 9, question: "PP27 Přirozený odvod kouře a tepla", answers: [
+{ id: "A", text: "využívá principu vztlaku horkých plynů, které vznikají při požáru a vytvářejí komínový efekt", correct: true },
+{ id: "B", text: "je založen na principu vytváření podtlaku či přetlaku v prostoru zasaženém požárem prostřednictvím požárních ventilátorů", correct: false },
+{ id: "C", text: "snižuje úroveň neutrální roviny pod 2,5 metrů", correct: false }
+]},
+{ id: 10, question: "PP31 Je důležité zachování kriminalistického ohniska požáru", answers: [
+{ id: "A", text: "je to důležité z hlediska stanovení příčiny vzniku požáru a případných dalších úkonů v rámci výkonu SPD", correct: true },
+{ id: "B", text: "bude stačit jen slovní popis od zasahujících hasičů", correct: false },
+{ id: "C", text: "není to důležité", correct: false }
+]},
+{ id: 11, question: "PP32 Kdo může provádět čištění spalinové cesty připojeného spotřebiče o výkonu nad 50 kw", answers: [
+{ id: "A", text: "oprávněná osoba", correct: true },
+{ id: "B", text: "fyzická osoba svépomocí", correct: false },
+{ id: "C", text: "pouze revizní technik spalinových cest", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "TZ 52c Maximální tloušťka materiálu přibíjeného hřebíkem 90 mm je", answers: [
+{ id: "A", text: "5 cm", correct: true },
+{ id: "B", text: "1 coul", correct: false },
+{ id: "C", text: "9 cm", correct: false }
+]},
+{ id: 2, question: "TZ 52c Hřebíky při vytváření spoje umísťujeme ve tvaru", answers: [
+{ id: "A", text: "čísla 5 na herní kostce", correct: true },
+{ id: "B", text: "čtverce", correct: false },
+{ id: "C", text: "trojúhelníku", correct: false }
+]},
+{ id: 3, question: "TZ 53c Co je to hráně „cribbing“?", answers: [
+{ id: "A", text: "Snadno přizpůsobitelná vzpěra na šířku i výšku.", correct: true },
+{ id: "B", text: "Prostředek na vnikání do uzavřených prostor.", correct: false },
+{ id: "C", text: "Speciální metoda hašení.", correct: false }
+]},
+{ id: 4, question: "TZ 53c Na co se používá hráně „cribbing“?", answers: [
+{ id: "A", text: "Jako podpěra stropu, příp. Nakloněného stropu.", correct: true },
+{ id: "B", text: "K zajištění štítové zdi.", correct: false },
+{ id: "C", text: "K zajištění výkopu.", correct: false }
+]},
+{ id: 5, question: "TZ 54a Z jakého materiálu jsou vyrobeny bednící desky?", answers: [
+{ id: "A", text: "Voděodolná překližka", correct: true },
+{ id: "B", text: "Dřevovláknitá deska", correct: false },
+{ id: "C", text: "OSB deska", correct: false }
+]},
+{ id: 6, question: "TZ01 Kdo rozhoduje o zahájení a ukončení činnosti k záchraně zvířat", answers: [
+{ id: "A", text: "velitel zásahu", correct: true },
+{ id: "B", text: "PČR", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 7, question: "TZ01 Má přednost záchrana osob před záchranou majetku", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "dle zvážení hasiče", correct: false },
+{ id: "C", text: "ne", correct: false }
+]},
+{ id: 8, question: "TZ06 Házecí pytlík zachraňovanému na tekoucí divoké vodě házíme:", answers: [
+{ id: "A", text: "s předstihem před zachraňovaného ve směru po proudu a pokud možno za jeho úroveň", correct: true },
+{ id: "B", text: "na zachraňovaného před jeho úroveň", correct: false },
+{ id: "C", text: "za zachraňovaného ve směru proti proudu před jeho úroveň", correct: false }
+]},
+{ id: 9, question: "TZ06 Jaký způsob záchrany při vstupu do neznámé (klidné) vody ze břehu zvolíme", answers: [
+{ id: "A", text: "krok (skok) do neznámé vody", correct: true },
+{ id: "B", text: "skok šipkou", correct: false },
+{ id: "C", text: "v klubíčku", correct: false }
+]},
+{ id: 10, question: "TZ07 Jaká tloušťka ledu unese dospělou osobu (80kg)", answers: [
+{ id: "A", text: "5-10cm", correct: true },
+{ id: "B", text: "1-2cm", correct: false },
+{ id: "C", text: "2-3cm", correct: false }
+]},
+{ id: 11, question: "TZ09 Co má přednost před záchranou zvířat při zásahu:", answers: [
+{ id: "A", text: "záchrana osob", correct: true },
+{ id: "B", text: "záchrana zvířat má přednost před vším", correct: false },
+{ id: "C", text: "zvířata se vždy zachraňují současně s osobami", correct: false }
+]},
+{ id: 12, question: "TZ09 Zvířata vyvádíme z dosahu kouře:", answers: [
+{ id: "A", text: "pokud možno na návětrnou stranu objektu, a zajistíme, aby se nemohla vracet zpět do objektu", correct: true },
+{ id: "B", text: "pokud možno na závětrnou stranu objektu, a nezajišťujeme možnost vracení se zvířat zpět do objektu", correct: false },
+{ id: "C", text: "pokud možno na závětrnou stranu objektu, a zajistíme, aby se nemohla vracet zpět do objektu", correct: false }
+]},
+{ id: 13, question: "TZ10 Cílem činnosti složek IZS při zásahu u dopravních nehod je například", answers: [
+{ id: "A", text: "vyproštění zraněných a ohrožených osob", correct: true },
+{ id: "B", text: "prvořadá komunikace s médii", correct: false },
+{ id: "C", text: "zajistit průjezdnost autobusům a nákladním vozům, které chtějí pokračovat v jízdě", correct: false }
+]},
+{ id: 14, question: "TZ10 Zřizuje se u běžné dopravní nehody štáb velitele zásahu", answers: [
+{ id: "A", text: "ne", correct: true },
+{ id: "B", text: "ano", correct: false },
+{ id: "C", text: "vždy po poradě s KOPIS", correct: false }
+]},
+{ id: 15, question: "TZ11 Je důležitá odborná příprava ve vyprošťování osob u dopravních nehod", answers: [
+{ id: "A", text: "teoretická i praktická odborná příprava je zásadní pro pochopení problematiky vyprošťování", correct: true },
+{ id: "B", text: "ano, avšak pouze teorie", correct: false },
+{ id: "C", text: "ne, vstupní odborná příprava je plně dostačující bez jakéhokoliv opakování", correct: false }
+]},
+{ id: 16, question: "TZ11 Vyprošťování u dopravních nehod je", answers: [
+{ id: "A", text: "soubor činností, jejichž cílem je získat přístup pro poskytnutí pomoci osobám při dopravní nehodě a vytvořit prostor pro bezpečné vyproštění zachraňovaných osob, zvířat a majetku", correct: true },
+{ id: "B", text: "činnost vedoucí pouze k vyproštění vozidel z prostorů mimo komunikaci, avšak bez zranění osob", correct: false },
+{ id: "C", text: "soubor činností, jejichž cílem není získat přístup pro poskytnutí pomoci osobám při dopravní nehodě a vytvořit prostor pro bezpečné vyproštění zachraňovaných osob, zvířat a majetku", correct: false }
+]},
+{ id: 17, question: "TZ12 Dopravní nehody s velkým počtem zraněných osob lze předpokládat u", answers: [
+{ id: "A", text: "dopravních nehod prostředků hromadné dopravy osob", correct: true },
+{ id: "B", text: "nákupních center v době akčních dní", correct: false },
+{ id: "C", text: "u osobních automobilů", correct: false }
+]},
+{ id: 18, question: "TZ13 Které tvrzení je pravdivé", answers: [
+{ id: "A", text: "následkem dopravních nehod vznikají situace, které ohrožují plynulost a bezpečnost silničního provozu nebo ohrožují životní prostředí", correct: true },
+{ id: "B", text: "následkem dopravních nehod vznikají situace, které mají vliv na náladu řidiče, obzvláště v pátek odpoledne a pondělí ráno", correct: false },
+{ id: "C", text: "následkem dopravních nehod vznikají situace, které ohrožují plynulost a bezpečnost silničního provozu, životní prostředí nikdy neohrožují", correct: false }
+]},
+{ id: 19, question: "TZ13 Může VZ využít techniku ZÚ HZS ČR k řešení události odstraňování následků dopravních nehod", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "ano, avšak pouze v pracovní dny (7:00-15:00hod.)", correct: false },
+{ id: "C", text: "ne", correct: false }
+]},
+{ id: 20, question: "TZ14 Využíváme výztuhy mimo jiné jako opěrné body při vyprošťování", answers: [
+{ id: "A", text: "Ano", correct: true },
+{ id: "B", text: "Ne", correct: false },
+{ id: "C", text: "Pokud se jedná o drahý vůz, výztuhy tímto způsobem nevyužíváme", correct: false }
+]},
+{ id: 21, question: "TZ14 Výztuhy patří mezi nosné prvky karoserie a plní několik funkcí např.", answers: [
+{ id: "A", text: "kotvící bod pro uchycení a navíječ bezpečnostních pásů (B a C sloupky)", correct: true },
+{ id: "B", text: "je antonymum pasivní bezpečnosti", correct: false },
+{ id: "C", text: "jsou to tzv. Měkké části vozu", correct: false }
+]},
+{ id: 22, question: "TZ15 Při absenci bezpečnostního pásu na zadních sedadlech, mohu tím ublížit osobám sedících vpředu", answers: [
+{ id: "A", text: "ano, mé tělo se stává neřízenou střelou schopnou zničit sedadla před sebou a zranit / usmrtit osoby vpředu", correct: true },
+{ id: "B", text: "pokud sedím vpravo vzadu, pás používat nemusím", correct: false },
+{ id: "C", text: "v žádném případě, pokud mám bezpečné auto", correct: false }
+]},
+{ id: 23, question: "TZ15 Zařízení E-CALL", answers: [
+{ id: "A", text: "je zařízení, které je instalované ve vozidle a slouží k rychlému a automatickému spojení s operátorem na lince 112", correct: true },
+{ id: "B", text: "je systém autonomního řízení vozu", correct: false },
+{ id: "C", text: "je zařízení, které je instalované ve vozidle a slouží k rychlému a automatickému spojení s manželem/manželkou", correct: false }
+]},
+{ id: 24, question: "TZ16 Jaká čerpadla lze použít k čerpání při povodních", answers: [
+{ id: "A", text: "všechny dostupné", correct: true },
+{ id: "B", text: "pouze elektrická", correct: false },
+{ id: "C", text: "pouze plovoucí", correct: false }
+]},
+{ id: 25, question: "TZ16 Je možno k čerpání při povodních použít i velkokapacitní čerpadlo", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "jen se souhlasem ZPP", correct: false },
+{ id: "C", text: "ne", correct: false }
+]},
+{ id: 26, question: "TZ19 Jaké známe druhy plnění závěsného vaku pod vrtulníkem", answers: [
+{ id: "A", text: "nořením z vodní plochy a pomocí požární techniky", correct: true },
+{ id: "B", text: "jen nořením z vodní plochy", correct: false },
+{ id: "C", text: "jen pomocí požární techniky", correct: false }
+]},
+{ id: 27, question: "TZ19 Kolik CAS je zapotřebí pro plnění závěsného vaku či letouny pro letecké hašení", answers: [
+{ id: "A", text: "minimálně 2 x CAS", correct: true },
+{ id: "B", text: "minimálně 1 x CAS", correct: false },
+{ id: "C", text: "minimálně 5 x CAS", correct: false }
+]},
+{ id: 28, question: "TZ20 Přiblížení se k vrtulníku nebo letounu je možný", answers: [
+{ id: "A", text: "se souhlasem pilota nebo posádky", correct: true },
+{ id: "B", text: "dle vlastního uvážení", correct: false },
+{ id: "C", text: "se souhlasem velitele zásahu", correct: false }
+]},
+{ id: 29, question: "TZ23 K odchytu a hubení obtížného hmyzu je třeba využít", answers: [
+{ id: "A", text: "hasičů, kteří netrpí alergickými reakcemi na včelí (popř. Vosí, sršní) bodnutí", correct: true },
+{ id: "B", text: "jen hasičů, kteří jsou registrovanými včelaři", correct: false },
+{ id: "C", text: "příslušníků městské policie", correct: false }
+]},
+{ id: 30, question: "TZ23 Při odchytu obtížného hmyzu je třeba pamatovat, že", answers: [
+{ id: "A", text: "tmavé oblečení napadají včely více než světlé", correct: true },
+{ id: "B", text: "na barvě oblečení nezáleží", correct: false },
+{ id: "C", text: "světlé oblečení napadají včely více než tmavé", correct: false }
+]},
+{ id: 31, question: "TZ27 Je nutné vždy odstraňovat střechu z havarovaného vozu", answers: [
+{ id: "A", text: "ne, rozhodnutí o rozsahu odstranění je na charakteru dopravní nehody a postupech velitele zásahu.", correct: true },
+{ id: "B", text: "pokud prší, střechu neodstraňujeme.", correct: false },
+{ id: "C", text: "střechu odstraňujeme vždy.", correct: false }
+]},
+{ id: 32, question: "TZ27 U vozidla na střeše vstupujeme do vozidla například", answers: [
+{ id: "A", text: "zezadu nebo z boku", correct: true },
+{ id: "B", text: "vždy zezadu, z boku do vozidla nikdy nevstupujeme", correct: false },
+{ id: "C", text: "z boku až po přetočení vozidla na kola (vždy se zraněným)", correct: false }
+]},
+{ id: 33, question: "TZ28 Hybridní pohon", answers: [
+{ id: "A", text: "je značení pro kombinaci několika zdrojů energie pro pohon jednoho dopravního prostředku", correct: true },
+{ id: "B", text: "je značení pro vodní zdroj pohonu vozidla", correct: false },
+{ id: "C", text: "nové označení vznětových motorů zejména v Asii", correct: false }
+]},
+{ id: 34, question: "TZ28 Plug-in hybridní vozidlo", answers: [
+{ id: "A", text: "je vozidlo s kombinací elektromotoru a spalovacího motoru, která lze zároveň nabít elektřinou ze zásuvky", correct: true },
+{ id: "B", text: "je vozidlo s kombinací elektromotoru a CNG, kterou lze nabít pouze u čerpacích stanic", correct: false },
+{ id: "C", text: "je vozidlo, které může jezdit pouze v krytých prostorech (INDOOR)", correct: false }
+]},
+{ id: 35, question: "TZ29 Barva vysokonapěťového vedení v hybridních vozidlech/elektromobilech má barvu", answers: [
+{ id: "A", text: "oranžovou", correct: true },
+{ id: "B", text: "červenou", correct: false },
+{ id: "C", text: "růžovou", correct: false }
+]},
+{ id: 36, question: "TZ29 Mezi způsoby hašení vozidel s vysokonapěťovou baterií patří", answers: [
+{ id: "A", text: "ponoření", correct: true },
+{ id: "B", text: "použití jednoho PHP vodního (PHP vystačí na uhašení celého vozidla)", correct: false },
+{ id: "C", text: "využití současně 3x B proudů po dobu 30minut, poté je vozidlo vždy uhašeno", correct: false }
+]},
+{ id: 37, question: "TZ30 Při řezání mečovou pilou se musí", answers: [
+{ id: "A", text: "nasadit vhodný pilový list", correct: true },
+{ id: "B", text: "spustit pilu, je-li list zaříznut v materiálu", correct: false },
+{ id: "C", text: "tlačit na pilový list ze strany", correct: false }
+]},
+{ id: 38, question: "TZ30 Při řezání mečovou pilou se musí používat", answers: [
+{ id: "A", text: "rukavice, brýle, respirátor", correct: true },
+{ id: "B", text: "jen brýle", correct: false },
+{ id: "C", text: "jen rukavice a brýle", correct: false }
+]},
+{ id: 39, question: "TZ31 Naviják se může používat", answers: [
+{ id: "A", text: "k přitahování předmětů a vozidel", correct: true },
+{ id: "B", text: "k přepravě osob", correct: false },
+{ id: "C", text: "ke zvedání a jištění osob", correct: false }
+]},
+{ id: 40, question: "TZ31 Pokud je lano navijáku v tahu", answers: [
+{ id: "A", text: "musím stát v dostatečné vzdálenosti", correct: true },
+{ id: "B", text: "mohu manipulovat s lanem", correct: false },
+{ id: "C", text: "mohu překračovat lano", correct: false }
+]},
+{ id: 41, question: "TZ32 Mezi záchranné prostředky pro práci na vodě patří", answers: [
+{ id: "A", text: "házecí pytlík, záchranná podkova, záchranný pás", correct: true },
+{ id: "B", text: "házecí pytlík, záchranný pás, kotva", correct: false },
+{ id: "C", text: "házecí pytlík, záchranný pás, žebřík", correct: false }
+]},
+{ id: 42, question: "TZ33 Defenzivní plavání je v poloze", answers: [
+{ id: "A", text: "na zádech s nohama ve směru po proudu", correct: true },
+{ id: "B", text: "na břiše s hlavou nad hladinou", correct: false },
+{ id: "C", text: "na zádech s nohama proti proudu", correct: false }
+]},
+{ id: 43, question: "TZ46 Je potřeba povolení ke kácení dřevin, je-li jejich stavem zřejmě a bezprostředně ohrožen život či zdraví nebo hrozí-li škoda značného rozsahu", answers: [
+{ id: "A", text: "není potřeba, je nutné poté oznámit orgánu ochrany přírody (do 15 dnů od provedení kácení)", correct: true },
+{ id: "B", text: "ano, je potřeba povolení", correct: false },
+{ id: "C", text: "jestli je potřeba povolení rozhodne KOPIS", correct: false }
+]},
+{ id: 44, question: "TZ46 Povolení ke kácení dřevin rostoucích mimo les dle zákona č. 114/1992 Sb. Není nutné", answers: [
+{ id: "A", text: "pro dřeviny o obvodu kmene do 80 cm měřeného ve výšce 130 cm nad zemí", correct: true },
+{ id: "B", text: "pro dřeviny o obvodu kmene do 130 cm měřeného ve výšce 130 cm nad zemí", correct: false },
+{ id: "C", text: "pro dřeviny o obvodu kmene do 8 cm měřeného v libovolné výšce nad zemí", correct: false }
+]},
+{ id: 45, question: "TZ53a Prefabrikovaná okenní / dveřní vzpěra se sestavuje?", answers: [
+{ id: "A", text: "Mimo zajišťovaný otvor v bezpečné vzdálenosti.", correct: true },
+{ id: "B", text: "Nesestavuje se.", correct: false },
+{ id: "C", text: "Přímo v zajišťovaném otvoru.", correct: false }
+]},
+{ id: 46, question: "TZ53a Zajištění otvoru okna / dveří se může provést?", answers: [
+{ id: "A", text: "Montáží přímo v otvoru nebo montáží mimo otvor a následným umístěním do otvoru.", correct: true },
+{ id: "B", text: "Pouze montáží mimo otvor a následným umístěním do otvoru.", correct: false },
+{ id: "C", text: "Pouze montáží v otvoru.", correct: false }
+]},
+{ id: 47, question: "TZ54b Jakou tyč preferujeme jako první? (zajištění výkopu)", answers: [
+{ id: "A", text: "S automatickým zámkem", correct: true },
+{ id: "B", text: "Bez zámku", correct: false },
+{ id: "C", text: "S mechanickým zámkem", correct: false }
+]},
+{ id: 48, question: "TZ54b Kolik bednících desek tvoří jedno pole?", answers: [
+{ id: "A", text: "Dvě bednící desky", correct: true },
+{ id: "B", text: "Čtyři bednící desky", correct: false },
+{ id: "C", text: "Dvě roznášecí desky", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "BOZP01 Příslušník je povinen dbát:", answers: [
+{ id: "A", text: "o vlastní bezpečnost a ochranu zdraví osob, kterých se bezprostředně dotýká jeho jednání", correct: true },
+{ id: "B", text: "jen o vlastní bezpečnost", correct: false },
+{ id: "C", text: "o vlastní bezpečnost, na druhé osoby nebere ohled", correct: false }
+]},
+{ id: 2, question: "BOZP01 Příslušník:", answers: [
+{ id: "A", text: "je povinen podrobit se na výzvu služebního funkcionáře lékařskému vyšetření za účelem ověření zdravotní způsobilosti", correct: true },
+{ id: "B", text: "není povinen podrobit se na výzvu služebního funkcionáře lékařskému vyšetření", correct: false },
+{ id: "C", text: "se podrobí lékařskému vyšetření za účelem ověření zdravotní způsobilosti, jen uzná-li to za vhodné", correct: false }
+]},
+{ id: 3, question: "BOZP02 Výše náhrady škody způsobené z nedbalosti nesmí u příslušníka přesáhnout", answers: [
+{ id: "A", text: "čtyřapůlnásobek jeho průměrného měsíčního příjmu", correct: true },
+{ id: "B", text: "dvojapůlnásobek jeho průměrného měsíčního příjmu", correct: false },
+{ id: "C", text: "tříapůlnásobek jeho průměrného měsíčního příjmu", correct: false }
+]},
+{ id: 4, question: "BOZP02 Záznam o úrazu vyhotovuje zaměstnavatel neprodleně, nejpozději však do", answers: [
+{ id: "A", text: "pěti pracovních dnů", correct: true },
+{ id: "B", text: "čtyř pracovních dnů", correct: false },
+{ id: "C", text: "tří pracovních dnů", correct: false }
+]},
+{ id: 5, question: "BOZP04 Pracovníci seznámeni mohou", answers: [
+{ id: "A", text: "zapínat a vypínat jednoduchá el. Zařízení", correct: true },
+{ id: "B", text: "používat poškozené el. Zařízení", correct: false },
+{ id: "C", text: "pracovat na nekrytých živých částech el. Zařízení", correct: false }
+]},
+{ id: 6, question: "BOZP04 Pracovníci seznámeni mohou sami obsluhovat", answers: [
+{ id: "A", text: "el. Zařízení malého a nízkého napětí", correct: true },
+{ id: "B", text: "el. Zařízení vysokého napětí", correct: false },
+{ id: "C", text: "el. Zařízení velmi vysokého napětí", correct: false }
+]},
+{ id: 7, question: "BOZP05 Šroubováky se používají", answers: [
+{ id: "A", text: "výhradně na šroubování", correct: true },
+{ id: "B", text: "příležitostně jako páčidlo", correct: false },
+{ id: "C", text: "v nutném případě jako dláto", correct: false }
+]},
+{ id: 8, question: "BOZP05 V prostředí, kde je nebezpečí výbuchu, musí být používané nářadí z", answers: [
+{ id: "A", text: "nejiskřícího materiálu", correct: true },
+{ id: "B", text: "kovového materiálu", correct: false },
+{ id: "C", text: "nehořlavého materiálu", correct: false }
+]},
+{ id: 9, question: "BOZP07 Pracovní obvodová rychlost brusného kotouče", answers: [
+{ id: "A", text: "nesmí překročit dovolené hodnoty", correct: true },
+{ id: "B", text: "může být překročena max. O 10 %", correct: false },
+{ id: "C", text: "není nijak omezena", correct: false }
+]},
+{ id: 10, question: "BOZP08 Maximální doba řízení musí být přerušena bezpečnostní přestávkou v trvání nejméně", answers: [
+{ id: "A", text: "30 min", correct: true },
+{ id: "B", text: "20 min", correct: false },
+{ id: "C", text: "40 min", correct: false }
+]},
+{ id: 11, question: "BOZP08 Zaměstnanec nesmí překročit maximální dobu řízení, která činí", answers: [
+{ id: "A", text: "4,5 hod", correct: true },
+{ id: "B", text: "3,5 hod", correct: false },
+{ id: "C", text: "5,5 hod", correct: false }
+]},
+{ id: 12, question: "BOZP09 Nosnost zvedáku", answers: [
+{ id: "A", text: "nesmí být v žádném případě překročena", correct: true },
+{ id: "B", text: "může být překročena maximálně o 10 %", correct: false },
+{ id: "C", text: "není nijak omezena", correct: false }
+]},
+{ id: 13, question: "BOZP09 Zvedák se umísťuje pod vozidlo", answers: [
+{ id: "A", text: "jen v předepsaných bodech výrobcem", correct: true },
+{ id: "B", text: "na jakékoliv úchytné místo", correct: false },
+{ id: "C", text: "tam, kde je zajištěna jeho stabilita", correct: false }
+]},
+{ id: 14, question: "BOZP11 Jeřábník nesmí opustit jeřáb", answers: [
+{ id: "A", text: "pokud je břemeno zavěšeno", correct: true },
+{ id: "B", text: "dokud se zavěšené břemeno hýbe", correct: false },
+{ id: "C", text: "pohybují-li se v jeho blízkosti nepovolané osoby", correct: false }
+]},
+{ id: 15, question: "BOZP11 Vyhrazená zdvihací zařízení jsou", answers: [
+{ id: "A", text: "jeřáby o nosnosti nad 5 000 kg", correct: true },
+{ id: "B", text: "vrátky", correct: false },
+{ id: "C", text: "zdvižná čela nákladních automobilů", correct: false }
+]},
+{ id: 16, question: "BOZP13 Světelné a zvukové signály musí být vydávány", answers: [
+{ id: "A", text: "po celou dobu po kterou to provádění této činnosti vyžaduje", correct: true },
+{ id: "B", text: "jen při zahájení a ukončení příslušné činnosti", correct: false },
+{ id: "C", text: "jen při zahájení příslušné činnost", correct: false }
+]},
+{ id: 17, question: "BOZP13 Značky výstrahy mají", answers: [
+{ id: "A", text: "trojúhelníkový tvar s černým piktogramem na žlutém pozadí", correct: true },
+{ id: "B", text: "kruhový tvar s bílým piktogramem na modrém pozadí", correct: false },
+{ id: "C", text: "obdélníkový nebo čtvercový tvar s bílým piktogramem na zeleném pozadí", correct: false }
+]},
+{ id: 18, question: "BOZP14 Ochrannými prostředky dle NV 495/2001 Sb. Jsou", answers: [
+{ id: "A", text: "ochranné prostředky, které chrání zaměstnance před riziky", correct: true },
+{ id: "B", text: "sportovní výstroj a vybavení", correct: false },
+{ id: "C", text: "výstroj a vybavení používané při provozu na pozemních komunikacích", correct: false }
+]},
+{ id: 19, question: "BOZP14 Používání ochranných prostředků více zaměstnanci", answers: [
+{ id: "A", text: "je možné pouze v případě, že byla učiněna opatření, která zamezí ohrožení přenosnými chorobami", correct: true },
+{ id: "B", text: "je možné jen na základě příkazu vedoucího zaměstnance", correct: false },
+{ id: "C", text: "není možné v žádném případě", correct: false }
+]},
+{ id: 20, question: "BOZP15 Max. Tloušťka káceného stromu pomocí křovinořezu je", answers: [
+{ id: "A", text: "10 cm", correct: true },
+{ id: "B", text: "15 cm", correct: false },
+{ id: "C", text: "20 cm", correct: false }
+]},
+{ id: 21, question: "BOZP15 Při práci se sekačkou se považuje za ohrožený prostor", answers: [
+{ id: "A", text: "kruhová plocha o poloměru 15 m", correct: true },
+{ id: "B", text: "prostor určený obsluhou stroje s přihlédnutím k místním podmínkám", correct: false },
+{ id: "C", text: "vzdálenost 10 m od pracovního stroje", correct: false }
+]},
+{ id: 22, question: "FP02 V disciplíně běh na 2000 m při zkoušce fyzické zdatnosti je povoleno chodit", answers: [
+{ id: "A", text: "ano", correct: true },
+{ id: "B", text: "ne", correct: false },
+{ id: "C", text: "ne, musí se běhat nejvyšší rychlostí", correct: false }
+]},
+{ id: 23, question: "FP02 Zkouška fyzické zdatnosti se provádí také", answers: [
+{ id: "A", text: "během na 2000 m", correct: true },
+{ id: "B", text: "během na 100 m", correct: false },
+{ id: "C", text: "během na 1500 m", correct: false }
+]},
+{ id: 24, question: "FP04 Při provádění fyzické zkoušky plaváním se smí plavat", answers: [
+{ id: "A", text: "libovolným způsobem", correct: true },
+{ id: "B", text: "způsobem upřesněným zkoušejícím příslušníkem", correct: false },
+{ id: "C", text: "způsobem určeným nařízením generálního ředitele HZS ČR", correct: false }
+]},
+{ id: 25, question: "FP04 Zkouška fyzické zdatnosti se provádí také", answers: [
+{ id: "A", text: "plaváním na 200 m", correct: true },
+{ id: "B", text: "plaváním na 2000 m", correct: false },
+{ id: "C", text: "plaváním na 300 m", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

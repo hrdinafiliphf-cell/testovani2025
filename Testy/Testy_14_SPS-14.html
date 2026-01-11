@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "Sps01 Fyzická osoba se dle zákona o elektronických komunikacích dopustí uskutečněním zlomyslného volání na číslo tísňového volání", answers: [
+{ id: "A", text: "přestupku, za něž se může uložit pokuta do 200 000 Kč", correct: true },
+{ id: "B", text: "není trestné", correct: false },
+{ id: "C", text: "správního deliktu", correct: false }
+]},
+{ id: 2, question: "Sps01 Ústředním správním úřadem ve věcech stanovených zákonem o telekomunikacích je", answers: [
+{ id: "A", text: "Český telekomunikační úřad", correct: true },
+{ id: "B", text: "Generální ředitelství HZS ČR", correct: false },
+{ id: "C", text: "Ministerstvo vnitra", correct: false }
+]},
+{ id: 3, question: "Sps03 Co je EMOCH 199", answers: [
+{ id: "A", text: "komunikační prostředí automaticky otevřené v DRS po stisknutí tlačítka nouze u terminálu organizace 5 nebo 6, který je registrován pod některou buňkou DRS", correct: true },
+{ id: "B", text: "alternativní komunikační prostředí, umožňující KOPIS HZS kraje přeřazení komunikací z územních TKG. Velitel zásahu musí požádat KOPIS o přidělení jedné z akčních TKG", correct: false },
+{ id: "C", text: "hlavní komunikační prostředí, mezi základnovými a pohyblivými terminály, případně mezi pohyblivými terminály navzájem", correct: false }
+]},
+{ id: 4, question: "Sps04 Index volací značky velitelského automobilu je", answers: [
+{ id: "A", text: "105", correct: true },
+{ id: "B", text: "101", correct: false },
+{ id: "C", text: "106", correct: false }
+]},
+{ id: 5, question: "Sps04 Otevřené volací značky se používají", answers: [
+{ id: "A", text: "v místě zásahu", correct: true },
+{ id: "B", text: "pro komunikaci mezi KOPIS", correct: false },
+{ id: "C", text: "při jízdě na místo zásahu", correct: false }
+]},
+{ id: 6, question: "Sps05 Po stisknutí tísňového tlačítka terminálu", answers: [
+{ id: "A", text: "nesmí obsluha terminál vypnout a je povinna vyčkat na vstoupení terminálu KOPIS HZS kraje (příp. Jiných oprávněných) do tísňové komunikace", correct: true },
+{ id: "B", text: "je obsluha terminálu povinna přepnout na kanál IDR 29 HZS a zahájit komunikaci voláním „Pomoc, pomoc, pomoc, zde stanice v tísni, příjem“", correct: false },
+{ id: "C", text: "je obsluha terminálu povinna zapnout SCAN všech dostupných kanálů a zahájit komunikaci voláním „Všem, všem, všem, zde stanice v tísni, příjem“", correct: false }
+]},
+{ id: 7, question: "Sps05 Statusové hlášení „žádost o spojení“ se používá", answers: [
+{ id: "A", text: "přednostně při navazování komunikace s KOPIS HZS kraje ze stanice umožňující odeslání statusového hlášení", correct: true },
+{ id: "B", text: "pouze při špatné slyšitelnosti při navazování komunikace s KOPIS HZS kraje ze stanice umožňující odeslání statusového hlášení", correct: false },
+{ id: "C", text: "při probíhající komunikaci s KOPIS HZS kraje ze stanice umožňující odeslání statusového hlášení", correct: false }
+]},
+{ id: 8, question: "Sps06 Jak často musí být prováděno přebíjení radiostanic tzv. „refresh“", answers: [
+{ id: "A", text: "1x za 14 dní. Minimálně 1x za měsíc.", correct: true },
+{ id: "B", text: "1x za 3 měsíce. Minimálně však 1x za půl roku.", correct: false },
+{ id: "C", text: "1x za půl roku. Minimálně však 1x za rok.", correct: false }
+]},
+{ id: 9, question: "Sps06 Na které pozici na radiostanici je naprogramována hlavní TKG pro komunikaci s KOPIS", answers: [
+{ id: "A", text: "na pozici 9", correct: true },
+{ id: "B", text: "na pozici 1", correct: false },
+{ id: "C", text: "na pozici 15", correct: false }
+]},
+{ id: 10, question: "Sps07 Jakou formou se předávají standardní zprávy o činnosti jednotky PO z místa zásahu na KOPIS HZS kraje přednostně", answers: [
+{ id: "A", text: "formou statusů", correct: true },
+{ id: "B", text: "pomocí DRS nebo ARS", correct: false },
+{ id: "C", text: "přes radiostanice nebo mobilní telefony", correct: false }
+]},
+{ id: 11, question: "Sps08 Mohou mít dva terminály PEGAS stejnou RFSI adresu", answers: [
+{ id: "A", text: "ne", correct: true },
+{ id: "B", text: "ano", correct: false },
+{ id: "C", text: "na výjimku MV ČR ano", correct: false }
+]},
+{ id: 12, question: "Sps08 Statusová hlášení se používají", answers: [
+{ id: "A", text: "prioritně namísto hlasové komunikace", correct: true },
+{ id: "B", text: "k doplnění hlasové zprávy", correct: false },
+{ id: "C", text: "při nesrozumitelnosti hlasové komunikace", correct: false }
+]},
+{ id: 13, question: "Sps11 Které z navigačních prostředků se využívá pro příjezd na místo události u HZS OLK", answers: [
+{ id: "A", text: "GINA", correct: true },
+{ id: "B", text: "Oregon 450", correct: false },
+{ id: "C", text: "POINT.X", correct: false }
+]},
+{ id: 14, question: "Sps14 K čemu slouží Portall", answers: [
+{ id: "A", text: "nástroj pro synchronizaci dat mezi JSDH a HZS", correct: true },
+{ id: "B", text: "nástroj pro synchronizaci dat mezi HZS krajů", correct: false },
+{ id: "C", text: "výlučně pro předávání zpráv o zásahu a elektronickou formou", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "NL13 Co znamená signál na níže uvedeném obrázku", questionImage: "images/nl13a.png", answers: [
+{ id: "A", text: "ukončete činnost v nebezpečné zóně, vraťte se zpět!", correct: true },
+{ id: "B", text: "mám potíže, musím okamžitě opustit nebezpečnou zónu", correct: false },
+{ id: "C", text: "nebezpečí! Všichni zpět!", correct: false }
+]},
+{ id: 2, question: "NL13 Co znamená signál na níže uvedeném", questionImage: "images/nl13b.png", answers: [
+{ id: "A", text: "pomoc, pomoc, pomoc!!!", correct: true },
+{ id: "B", text: "mám potíže, musím okamžitě opustit nebezpečnou zónu", correct: false },
+{ id: "C", text: "nebezpečí! Všichni zpět!", correct: false }
+]},
+{ id: 3, question: "NL01 Bezpečnostní značka ADR s označením číslicí 1 znamená", answers: [
+{ id: "A", text: "výbušné látky", correct: true },
+{ id: "B", text: "dráždivé látky", correct: false },
+{ id: "C", text: "toxické látky", correct: false }
+]},
+{ id: 4, question: "NL01 Co označuje Kemlerův kód pod číslem 33", answers: [
+{ id: "A", text: "vysoká hořlavost", correct: true },
+{ id: "B", text: "hořlavost pevných látek", correct: false },
+{ id: "C", text: "žíravá látka", correct: false }
+]},
+{ id: 5, question: "NL03 Intoxikace centrálního nervového systému", answers: [
+{ id: "A", text: "ovlivňuje dýchání, činnosti srdce, narkotické účinky, ochrnutí, ztráta některých smyslů atd.", correct: true },
+{ id: "B", text: "poškozuje vazbu kyslíku na krev", correct: false },
+{ id: "C", text: "způsobuje zvracení, bolesti a průjmy", correct: false }
+]},
+{ id: 6, question: "NL09 Jaká technika je nejvhodnější pro manipulaci s těly zvířat", answers: [
+{ id: "A", text: "nakladač s hydraulicky ovládanou rukou", correct: true },
+{ id: "B", text: "autojeřáb", correct: false },
+{ id: "C", text: "ruční manipulace se zvířaty", correct: false }
+]},
+{ id: 7, question: "NL12 Při zásahu s přítomností nebezpečné látky, dokud se nezjistí, o jakou nebezpečnou látku se jedná, musí být opatření jednotky mj.", answers: [
+{ id: "A", text: "nasadit na průzkum a práci v nebezpečné zóně co nejmenší počet hasičů a pracovat v nejvyšším stupni ochrany a připravit zjednodušenou nebo základní dekontaminaci", correct: true },
+{ id: "B", text: "dekontaminační stanoviště postavit, až v případě potřeby, když se některý hasič kontaminuje nebezpečnou látkou", correct: false },
+{ id: "C", text: "vyslat neprodleně do nebezpečné zóny co nejvíce hasičů, aby zásah proběhl co nejrychleji", correct: false }
+]},
+{ id: 8, question: "NL12 V době příjezdu na místo zásahu s přítomností nebezpečných látek první jednotka postupuje mj. Podle zásady", answers: [
+{ id: "A", text: "zjišťovat přítomnost nebezpečných látek (plyny, páry, ionizující záření apod.)", correct: true },
+{ id: "B", text: "nejprve vyhledávat pouze zdroj ionizujícího záření, ostatní detekci nechat na pozdější dobu", correct: false },
+{ id: "C", text: "zjišťovat výhradně přítomnost chemických látek, zdroj ionizujícího záření zjišťovat jen, pokud k tomu je oprávněný důvod, např. Nález obalu se znakem radioaktivity", correct: false }
+]},
+{ id: 9, question: "NL14 Nebezpečná zóna je", answers: [
+{ id: "A", text: "nebezpečná zóna je vymezený prostor bezprostředního ohrožení života a zdraví účinky mimořádné události; prostor této zóny ohraničuje hranice nebezpečné zóny", correct: true },
+{ id: "B", text: "nebezpečná zóna je prostor bezprostředního ohrožení života a zdraví účinky mimořádné události", correct: false },
+{ id: "C", text: "nebezpečná zóna je vymezený prostor bezprostředního ohrožení zdraví; prostor této zóny ohraničuje hranice nebezpečné zóny", correct: false }
+]},
+{ id: 10, question: "NL15 Minimální počet hasičů na jištění (J) při práci v nebezpečné zóně (NZ)", answers: [
+{ id: "A", text: "2 NZ + 2 J nebo 3 NZ + 1 J nebo více jak 3 NZ se jistí navzájem, v případě 2 NZ + 2 J může VZ počet snížit na 1 J na dobu nezbytně nutnou (záchrana osob)", correct: true },
+{ id: "B", text: "3 NZ + 2 J nebo 2 NZ + 1 J nebo více jak 3 NZ se jistí navzájem, v případě 3 NZ + 2 J může VZ počet snížit na 1 J na dobu nezbytně nutnou (záchrana osob)", correct: false },
+{ id: "C", text: "4 NZ + 2 J nebo 1 NZ + 1 J nebo více jak 3 NZ se jistí navzájem, v případě 2 NZ + 2 J může VZ počet snížit na 1 J na dobu nezbytně nutnou (záchrana osob)", correct: false }
+]},
+{ id: 11, question: "NL15 Stanoviště jistící skupiny je vytvořeno", answers: [
+{ id: "A", text: "v nástupním prostoru", correct: true },
+{ id: "B", text: "u prostoru dekontaminace", correct: false },
+{ id: "C", text: "v týlu", correct: false }
+]},
+{ id: 12, question: "NL16 Komunikace v nebezpečné zóně spočívá mezi", answers: [
+{ id: "A", text: "velitelem a zasahujícími hasiči a mezi hasiči ve skupině", correct: true },
+{ id: "B", text: "mezi velitelem a operačním střediskem", correct: false },
+{ id: "C", text: "pouze mezi hasiči ve skupině s velitelem není v danou chvíli důvod komunikovat", correct: false }
+]},
+{ id: 13, question: "NL16 Způsob komunikace v nebezpečné zóně spočívá", answers: [
+{ id: "A", text: "vizuálních signálů, mluveným slovem, jinými prostředky (lano, píšťalka, spojkou)", correct: true },
+{ id: "B", text: "prostřednictvím spojky", correct: false },
+{ id: "C", text: "vysílačkou", correct: false }
+]},
+{ id: 14, question: "NL17 Dekontaminační prostor", answers: [
+{ id: "A", text: "Dekontaminační prostor se zřizuje pro dekontaminaci zasahujících hasičů a prostředků po návratu z nebezpečné zóny. Je umístěn zpravidla na návětrné straně ve vnější zóně a při zásazích s výskytem nebezpečných chemických látek a B-agens sousedí s nebezpečnou zónou", correct: true },
+{ id: "B", text: "Dekontaminační prostor se zřizuje pro dekontaminaci zasahujících hasičů a prostředků po návratu z nebezpečné zóny. Je umístěn na závětrné straně ve vnější zóně a vždy bezprostředně sousedí s nebezpečnou zónou", correct: false },
+{ id: "C", text: "Dekontaminační prostor se zřizuje pro dekontaminaci zasahujících hasičů a prostředků po návratu z nebezpečné zóny. Je umístěn zpravidla na návětrné straně ve vnější zóně a při zásazích s výskytem ionizujícího záření sousedí s nebezpečnou zónou", correct: false }
+]},
+{ id: 15, question: "NL23 Pro zásah při výskytu výbušných látek a výbušných předmětů jednotky PO volí", answers: [
+{ id: "A", text: "vyčkávací taktiku", correct: true },
+{ id: "B", text: "nasazení střelmistrů k okamžité likvidaci nebezpečného předmětu", correct: false },
+{ id: "C", text: "požární útok B proudem", correct: false }
+]},
+{ id: 16, question: "NL23 Při nálezu nástražného výbušného systému je velitelem zásahu", answers: [
+{ id: "A", text: "příslušník PČR (pokud převažují činnosti související s oznámením o uložení NVS zaměřené na prověření NVS nebo jeho zneškodnění) anebo příslušník HZS ČR (pokud převažují činnosti zaměřené na vyrozumění, evakuaci a záchranu osob nebo záchranné práce)", correct: true },
+{ id: "B", text: "příslušník PČR nebo HZS určený řídícím důstojníkem", correct: false },
+{ id: "C", text: "vždy příslušník PČR", correct: false }
+]},
+{ id: 17, question: "NL24 Od zápalné láhve", answers: [
+{ id: "A", text: "hrozí nebezpečí popálení, nebezpečí poleptání, nebezpečí výbuchu a nebezpečí pořezání odkrytých částí těla střepy, zejména očí", correct: true },
+{ id: "B", text: "nehrozí žádné nebezpečí", correct: false },
+{ id: "C", text: "se lze jen občas lehce pořezat", correct: false }
+]},
+{ id: 18, question: "NL24 Při vlétnutí zápalné láhve do vozidla je nutné tuto", answers: [
+{ id: "A", text: "okamžitě vyhodit ven, není-li to možné tak opustit vozidlo", correct: true },
+{ id: "B", text: "otevřít okna vozidla a pokračovat v jízdě", correct: false },
+{ id: "C", text: "začít hasit láhev pomocí práškového hasicího přístroje", correct: false }
+]},
+{ id: 19, question: "NL26 Přečerpávání hořlavých kapalin je charakterizováno", answers: [
+{ id: "A", text: "potřebou speciálních prostředků pro přečerpávání nebezpečných látek", correct: true },
+{ id: "B", text: "nutností použití nejvyššího stupně ochrany", correct: false },
+{ id: "C", text: "použitím sudového čerpadla z polypropylenu – žlutá barva", correct: false }
+]},
+{ id: 20, question: "NL26 V souvislosti ze schopnosti kapalin elektrizovat může vznik elektrické jiskry nastat", answers: [
+{ id: "A", text: "mezi uzemněnými díly a nabitou kapalinou", correct: true },
+{ id: "B", text: "mezi cisternou a přečerpávacím zařízením po uzemnění", correct: false },
+{ id: "C", text: "navzájem mezi spojenými díly", correct: false }
+]},
+{ id: 21, question: "NL27 Jaké PH má čpavek", answers: [
+{ id: "A", text: "zásadité", correct: true },
+{ id: "B", text: "kyselé", correct: false },
+{ id: "C", text: "neutrální", correct: false }
+]},
+{ id: 22, question: "NL27 Při přečerpávání zkapalněného čpavku lze využít", answers: [
+{ id: "A", text: "kalové čerpadlo nebo podtlakový sběrač spojený s peristaltickým čerpadlem", correct: true },
+{ id: "B", text: "HZS ČR nedisponuje žádnými čerpadly na zkapalněný čpavek, je nutné povolat specializovanou firmu s kryogenním čerpadlem", correct: false },
+{ id: "C", text: "odstředivé nebo membránové čerpadlo", correct: false }
+]},
+{ id: 23, question: "NL31 Co jsou dle nařízení CLP tzv. „P věty“ dříve známé jako „S-věty“", answers: [
+{ id: "A", text: "Pokyny pro bezpečné zacházení (precautionary statement), např. – Uchovávejte mimo dosah dětí", correct: true },
+{ id: "B", text: "Patří mezi tzv. Signální slova jako např. „nebezpečí“ („danger“) nebo „varování“ („warning“)", correct: false },
+{ id: "C", text: "Standardní věty nebezpečnosti, např. Při použití může způsobit smrt", correct: false }
+]},
+{ id: 24, question: "NL31 Nařízení CLP", answers: [
+{ id: "A", text: "se týká klasifikace, označování a balení látek a směsí", correct: true },
+{ id: "B", text: "se týká léčiv a radioaktivního materiálu.", correct: false },
+{ id: "C", text: "souhrnně nahrazuje předpisy o přepravě nebezpečných látek a věcí po silnici, železnici a vnitrozemských vodních cestách (ADR, RID, ADN)", correct: false }
+
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

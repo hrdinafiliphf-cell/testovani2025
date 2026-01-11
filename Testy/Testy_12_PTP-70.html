@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "PTP 04 Oxid uhelnatý (CO) je", answers: [
+{ id: "A", text: "bezbarvý plyn, bez zápachu, lehčí než vzduch, vzniká při nedokonalém hoření", correct: true },
+{ id: "B", text: "bezbarvý plyn, bez zápachu, lehčí než vzduch, vzniká při dokonalém hoření", correct: false },
+{ id: "C", text: "bezbarvý plyn, bez zápachu, těžší než vzduch, vzniká při nedokonalém hoření", correct: false }
+]},
+{ id: 2, question: "PTP 29 Požáry ve školách jsou ovlivněny", answers: [
+{ id: "A", text: "náročností průzkumu (několik průzkumných skupin) a nutností vyhledávání dětí", correct: true },
+{ id: "B", text: "jistota že všechny děti jsou nastoupeny na školou vyhrazeném místě", correct: false },
+{ id: "C", text: "nehrozí zakouření a ztráta orientace", correct: false }
+]},
+{ id: 3, question: "PTP 29 Při požárech v předškolních a školních zařízení", answers: [
+{ id: "A", text: "je třeba důsledně provézt průzkum z důvodu ukrytí dětí v objektu", correct: true },
+{ id: "B", text: "jsou děti evakuovány učiteli a jednotka provádí jen hašení požáru", correct: false },
+{ id: "C", text: "není velká potřeba dýchacích přístrojů", correct: false }
+]},
+{ id: 4, question: "PTP 58 Při požárech divadel nutno počítat s následujícími komplikacemi", answers: [
+{ id: "A", text: "vznik paniky při evakuaci, neřízená evakuace, vysoká intenzita požáru, ztráta orientace vlivem různých zákoutí sloužících k dočasnému odložení dekorací a rekvizit", correct: true },
+{ id: "B", text: "vznik paniky při evakuaci, nízká intenzita požáru, snadná orientace vlivem různých zákoutí sloužících k dočasnému odložení dekorací a rekvizit", correct: false },
+{ id: "C", text: "vznik řízené paniky při evakuaci, nízká intenzita požáru, snadná orientace vlivem různých zákoutí sloužících k dočasnému odložení dekorací a rekvizit", correct: false }
+]},
+{ id: 5, question: "PTP 58 Zásah jednotky při požáru v divadle je ovlivněn zejména", answers: [
+{ id: "A", text: "přítomností velkého množství osob, náročností průzkumu, složitými podmínkami pro záchranu a evakuaci osob zejména z prostorů určených pro zaměstnance", correct: true },
+{ id: "B", text: "přítomností malého množství osob, složitými podmínkami pro záchranu a evakuaci osob zejména z prostorů určených pro zaměstnance", correct: false },
+{ id: "C", text: "přítomností velkého množství osob, snadnou záchranou a evakuací osob zejména z prostorů určených pro zaměstnance", correct: false }
+]},
+{ id: 6, question: "PTP01 Lineární rychlost šíření požáru", answers: [
+{ id: "A", text: "je vzdálenost na jakou se požár rozšíří v určitém směru za jednotku času", correct: true },
+{ id: "B", text: "je plocha požáru", correct: false },
+{ id: "C", text: "je velikost plamenů", correct: false }
+]},
+{ id: 7, question: "PTP01 Teplota vznícení", answers: [
+{ id: "A", text: "je nejnižší možná teplota, při které hořlavá látka začne hořet i bez iniciace otevřeným plamenem", correct: true },
+{ id: "B", text: "je nejvyšší možná teplota, při které hořlavá látka začne hořet i bez iniciace otevřeným plamenem", correct: false },
+{ id: "C", text: "je teplota při níž látka přestane hořet", correct: false }
+]},
+{ id: 8, question: "PTP02 Co je teplota vznícení", answers: [
+{ id: "A", text: "je nejnižší teplota, při které se za definovaných zkušebních podmínek hořlavá látka ve směsi se vzduchem sama bez iniciace vznítí", correct: true },
+{ id: "B", text: "je nejnižší teplota hořlavé látky, při níž se tvoří tolik hořlavých par, že se tyto páry při přiblížení otevřeného plaménku vznítí a samy dále hoří", correct: false },
+{ id: "C", text: "je nejnižší teplota, při které hořlavá látka za normálního tlaku vyvine tolik hořlavých par, že tyto ve směsi se vzduchem při krátkodobém přiblížení přesně definovaného otevřeného plaménku krátce vzplanou, ale dále nehoří", correct: false }
+]},
+{ id: 9, question: "PTP02 Co je to oblast výbušnosti", answers: [
+{ id: "A", text: "označuje oblast koncentrací směsi plynu, páry nebo prachu se vzduchem, ve které směs při zapálení zdrojem vznícení vybuchuje", correct: true },
+{ id: "B", text: "označuje oblast koncentrací směsi plynu, páry nebo prachu se vzduchem nad hranicí horní meze výbušnosti", correct: false },
+{ id: "C", text: "označuje oblast koncentrací směsi plynu, páry nebo prachu se vzduchem pod dolní hranicí výbušnosti", correct: false }
+]},
+{ id: 10, question: "PTP03 Do kolika fází můžeme rozdělit požár", answers: [
+{ id: "A", text: "čtyř", correct: true },
+{ id: "B", text: "pěti", correct: false },
+{ id: "C", text: "tří", correct: false }
+]},
+{ id: 11, question: "PTP03 Požár se dělí na tři pásma, která", answers: [
+{ id: "A", text: "pásmo přípravy, pásmo hoření, pásmo zakouření", correct: true },
+{ id: "B", text: "pásmo chystání, pásmo hoření, pásmo odvodu tepla a kouře", correct: false },
+{ id: "C", text: "pásmo rozhořívání, pásmo hoření, pásmo dohořívání", correct: false }
+]},
+{ id: 12, question: "PTP03 Teplo se při požáru může předávat třemi způsoby, kterými", answers: [
+{ id: "A", text: "vedením, sáláním, prouděním", correct: true },
+{ id: "B", text: "vedením, sáláním", correct: false },
+{ id: "C", text: "vedením, sáláním, prouděním, tokem", correct: false }
+]},
+{ id: 13, question: "PTP04 Normální obsah kyslíku ve vzduchu je", answers: [
+{ id: "A", text: "0,21", correct: true },
+{ id: "B", text: "0,18", correct: false },
+{ id: "C", text: "0,23", correct: false }
+]},
+{ id: 14, question: "PTP05 Dělení ventilace", answers: [
+{ id: "A", text: "přirozená, nucená", correct: true },
+{ id: "B", text: "přirozená, nucená, podtlaková", correct: false },
+{ id: "C", text: "přirozená, nucená, přetlaková", correct: false }
+]},
+{ id: 15, question: "PTP05 Při nucené ventilaci se přetlak v budově vytváří pomocí", answers: [
+{ id: "A", text: "přetlakového ventilátoru", correct: true },
+{ id: "B", text: "odsavače kouře", correct: false },
+{ id: "C", text: "přírodních jevů - větru", correct: false }
+]},
+{ id: 16, question: "PTP06 Uvedení jednotky do akceschopnosti po příjezdu z místa zásahu je výkonem služby", answers: [
+{ id: "A", text: "v organizačním řízení", correct: true },
+{ id: "B", text: "v operačním řízení", correct: false },
+{ id: "C", text: "ve zvláštním režimu řízení", correct: false }
+]},
+{ id: 17, question: "PTP06 Velitel jednotky hlásí příjezd od zásahu na místo dislokace", answers: [
+{ id: "A", text: "příslušnému operačnímu středisku", correct: true },
+{ id: "B", text: "řídícímu důstojníkovi", correct: false },
+{ id: "C", text: "služebnímu funkcionáři", correct: false }
+]},
+{ id: 18, question: "PTP07 Požární útok se provádí podle situace na místě zásahu", answers: [
+{ id: "A", text: "souběžně s průzkumem", correct: true },
+{ id: "B", text: "neprovádí se", correct: false },
+{ id: "C", text: "po závěrečném průzkumu", correct: false }
+]},
+{ id: 19, question: "PTP07 Výškovou techniku a technické prostředky pro výstup do výšek lze přemístit na nové stanoviště", answers: [
+{ id: "A", text: "teprve po sestoupení hasičů, kteří po této technice vystoupili nebo byli informováni o jejím přemístění a současně jim byly určeny jiné cesty k návratu", correct: true },
+{ id: "B", text: "lze libovolně přemisťovat", correct: false },
+{ id: "C", text: "zásadně se nepřemisťuje", correct: false }
+]},
+{ id: 20, question: "PTP08 Obranné postavení se zaujímá", answers: [
+{ id: "A", text: "tam, kde je možnost zabránit šíření požáru, zpravidla na hranici požárních úseků nebo v místech přírodních nebo umělých překážek", correct: true },
+{ id: "B", text: "dle uvážení průzkumné skupiny", correct: false },
+{ id: "C", text: "před zahájením požárního útoku", correct: false }
+]},
+{ id: 21, question: "PTP08 Požární obrana se provádí", answers: [
+{ id: "A", text: "zejména při nedostatku sil a prostředků a při rozsáhlých požárech", correct: true },
+{ id: "B", text: "neprovádí se z důvodu nedostatku času", correct: false },
+{ id: "C", text: "při nedostatku odhodlání provést požární útok", correct: false }
+]},
+{ id: 22, question: "PTP11 Jakým způsobem lze provádět ochranu okolních objektů ohrožených požárem", answers: [
+{ id: "A", text: "nanesením vhodné pěny na hořlavé konstrukce", correct: true },
+{ id: "B", text: "řízenou demolicí", correct: false },
+{ id: "C", text: "stínící plachtou", correct: false }
+]},
+{ id: 23, question: "PTP11 Jakým způsobem lze zastavit rozsáhlý lesní požár podporovaný vysokou intenzitou větru", answers: [
+{ id: "A", text: "vytvořením proluk", correct: true },
+{ id: "B", text: "povoláním aktivních záloh AČR", correct: false },
+{ id: "C", text: "větší dodávkou vody", correct: false }
+]},
+{ id: 24, question: "PTP11 Na co je nutné brát zřetel při působení silného větru u hašení požáru", answers: [
+{ id: "A", text: "na rozfoukání nedohašených ohnisek", correct: true },
+{ id: "B", text: "na vhodnou ustrojenost", correct: false },
+{ id: "C", text: "na vytvoření záložního hadicového vedení", correct: false }
+]},
+{ id: 25, question: "PTP12 Čemu je důležité se vyvarovat za silného mrazu", answers: [
+{ id: "A", text: "uzavírání proudnic a rozdělovačů, zastavování čerpadel", correct: true },
+{ id: "B", text: "nevzít si spodní prádlo", correct: false },
+{ id: "C", text: "ochrany okolních objektů ochlazováním", correct: false }
+]},
+{ id: 26, question: "PTP12 Jakým způsobem se chrání hadicové spojky a hadicové vedení před účinky mrazu", answers: [
+{ id: "A", text: "zahrabáním spojek do sněhu, pokud je to možné, tak celého vedení", correct: true },
+{ id: "B", text: "nanesením vrstvy středně těžké pěny", correct: false },
+{ id: "C", text: "zakopáním do země", correct: false }
+]},
+{ id: 27, question: "PTP12 Při hašení za silného mrazu lze očekávat", answers: [
+{ id: "A", text: "nedostatek vodních zdrojů, snížení vydatnosti u přírodních vodních zdrojů", correct: true },
+{ id: "B", text: "nedostatek sněhu", correct: false },
+{ id: "C", text: "nízké dojezdové časy okolních JPO", correct: false }
+]},
+{ id: 28, question: "PTP13 Co usnadňuje pohyb v zakouřeném prostoru", answers: [
+{ id: "A", text: "vodící lano", correct: true },
+{ id: "B", text: "pohodlná obuv", correct: false },
+{ id: "C", text: "trhací hák", correct: false }
+]},
+{ id: 29, question: "PTP13 Jaké nebezpečí nehrozí při hašení požáru za silného zakouření", answers: [
+{ id: "A", text: "ionizujícího záření", correct: true },
+{ id: "B", text: "výbuchu", correct: false },
+{ id: "C", text: "ztráty orientace", correct: false }
+]},
+{ id: 30, question: "PTP13 S rostoucí teplotou v silně zakouřené místnosti hrozí riziko", answers: [
+{ id: "A", text: "náhlého vzplanutí", correct: true },
+{ id: "B", text: "vzniku adiabatické komprese", correct: false },
+{ id: "C", text: "zvýšení hydrostatického tlaku", correct: false }
+]},
+{ id: 31, question: "PTP14 V kterém případě se nedoporučuje nasazení přetlakové ventilace", answers: [
+{ id: "A", text: "nasazení v místě kde může dojít ke zvíření a následné explozi výbušných prachů", correct: true },
+{ id: "B", text: "odvětrání zakouřených prostor", correct: false },
+{ id: "C", text: "při usměrňování odváděného kouře", correct: false }
+]},
+{ id: 32, question: "PTP14 Ve kterém případě se doporučuje nasazení přetlakové ventilace", answers: [
+{ id: "A", text: "k odvětrání zakouřených prostor", correct: true },
+{ id: "B", text: "nasazení v místě kde může dojít ke zvíření a následné explozi výbušných", correct: false },
+{ id: "C", text: "při usměrňování odváděného kouře", correct: false }
+]},
+{ id: 33, question: "PTP27 Jaké zvláštnosti můžeme očekávat při požárech v muzeích, knihovnách a archivech", answers: [
+{ id: "A", text: "zvýšenou potřebu sil a prostředků, omezený vstup do budov v mimopracovní dobu či neočekávané cesty šíření požáru", correct: true },
+{ id: "B", text: "nízké požární zatížení a nízkou hodnotu umístěných předmětů", correct: false },
+{ id: "C", text: "vyznačené shromaždiště osob", correct: false }
+]},
+{ id: 34, question: "PTP27 Jaké zvláštnosti můžeme očekávat při požárech v muzeích, knihovnách a archivech", answers: [
+{ id: "A", text: "zvýšenou potřebu sil a prostředků, omezený vstup do budov v mimopracovní dobu či neočekávané cesty šíření požáru", correct: true },
+{ id: "B", text: "nízké požární zatížení a nízkou hodnotu umístěných předmětů", correct: false },
+{ id: "C", text: "vyznačené shromaždiště osob", correct: false }
+]},
+{ id: 35, question: "PTP27 Jaký postup činností můžeme očekávat při požárech v muzeích, knihovnách a archivech", answers: [
+{ id: "A", text: "evakuaci hodnot v pořadí podle pokynů odpovědného zaměstnance postiženého objektu", correct: true },
+{ id: "B", text: "evakuaci hodnot v pořadí podle jejich hmotnosti (lehčí jako první)", correct: false },
+{ id: "C", text: "evakuaci hodnot v pořadí podle uvážení zasahujících hasičů", correct: false }
+]},
+{ id: 36, question: "PTP31 Ztrátě orientace v zakouřených prostorech můžeme zabránit použitím", answers: [
+{ id: "A", text: "vodících lan, hadicových vedení, odvětráním apod.", correct: true },
+{ id: "B", text: "dýmovnic a dalších optických signálů,", correct: false },
+{ id: "C", text: "kompasu, mapy, případně globálního polohového systému tzv. GPS", correct: false }
+]},
+{ id: 37, question: "PTP32 Při pátrání a záchraně osob v silně zakouřeném prostředí", answers: [
+{ id: "A", text: "pracujeme vždy ve skupinách dvou a vícečetných, udržujeme neustálý (osobní) kontakt", correct: true },
+{ id: "B", text: "pracujeme samostatně", correct: false },
+{ id: "C", text: "pracujeme ve dvou, ale nemusíme udržovat osobní kontakt", correct: false }
+]},
+{ id: 38, question: "PTP32 Při vyhledávání osob se k označení prohledaných místností prioritně používá", answers: [
+{ id: "A", text: "symbol dvou úhlopříčných čar tvořící kříž", correct: true },
+{ id: "B", text: "symbol písmen O.K. (vše v pořádku)", correct: false },
+{ id: "C", text: "symbol písmene P (prohledáno)", correct: false }
+]},
+{ id: 39, question: "PTP34 Požární výtah", answers: [
+{ id: "A", text: "zajišťuje rychlou dopravu jednotek PO do všech podlaží", correct: true },
+{ id: "B", text: "slouží pouze k evakuaci osob z nejvyššího podlaží do přízemí", correct: false },
+{ id: "C", text: "slouží pouze k odvětrání, výškové budovy za využití komínového efektu", correct: false }
+]},
+{ id: 40, question: "PTP34 Únikové cesty se konstrukčně dělí na", answers: [
+{ id: "A", text: "nechráněné a chráněné typu A, B, C", correct: true },
+{ id: "B", text: "rovné a lomené", correct: false },
+{ id: "C", text: "sestupné a vzestupné", correct: false }
+]},
+{ id: 41, question: "PTP35 Rozpuštěný plyn (acetylén) v láhvi má nebezpečnou teplotu výbuchu od", answers: [
+{ id: "A", text: "65 °C", correct: true },
+{ id: "B", text: "110 °C", correct: false },
+{ id: "C", text: "80 °C", correct: false }
+]},
+{ id: 42, question: "PTP35 V podmínkách požáru dochází", answers: [
+{ id: "A", text: "k nárůstu tlaku plynu uvnitř tlakové láhve (dále jen „láhev“) a současně k poklesu pevnosti pláště láhve", correct: true },
+{ id: "B", text: "k poklesu tlaku plynu uvnitř tlakové láhve a současně k nárůstu pevnosti pláště láhve", correct: false },
+{ id: "C", text: "k poklesu tlaku plynu uvnitř tlakové láhve a současně k poklesu pevnosti pláště láhve", correct: false }
+]},
+{ id: 43, question: "PTP37 Propan – butan", answers: [
+{ id: "A", text: "je těžší než vzduch", correct: true },
+{ id: "B", text: "je lehčí než vzduch", correct: false },
+{ id: "C", text: "je stejně těžký jako vzduch", correct: false }
+]},
+{ id: 44, question: "PTP37 Zemní plyn", answers: [
+{ id: "A", text: "je lehčí než vzduch", correct: true },
+{ id: "B", text: "je stejně těžký jako vzduch", correct: false },
+{ id: "C", text: "je těžší než vzduch", correct: false }
+]},
+{ id: 45, question: "PTP38 K hašení požáru práškových a alkalických kovů se nesmí použít", answers: [
+{ id: "A", text: "oxid uhličitý CO2", correct: true },
+{ id: "B", text: "prášek", correct: false },
+{ id: "C", text: "suchý písek", correct: false }
+]},
+{ id: 46, question: "PTP41 Na skládce odpadu hrozí nejvíce nebezpečí", answers: [
+{ id: "A", text: "propadnutí na nezpevněném podloží", correct: true },
+{ id: "B", text: "úraz elektrickým proudem", correct: false },
+{ id: "C", text: "ztráta orientace", correct: false }
+]},
+{ id: 47, question: "PTP41 Při požáru s ohledem na možné ohrožení obyvatel nebo životního prostředí je nutno", answers: [
+{ id: "A", text: "informovat obyvatelstvo", correct: true },
+{ id: "B", text: "informovat není potřeba", correct: false },
+{ id: "C", text: "vše zařídí TV stanice, která požár odvysílá", correct: false }
+]},
+{ id: 48, question: "PTP45 Nebezpečí charakteristické pro požáry v budovách zdravotnických zařízení", answers: [
+{ id: "A", text: "nebezpečí zakouření, nebezpečí ztráty orientace, nebezpečí ionizujícího záření, nebezpečí intoxikace, nebezpečí infekce", correct: true },
+{ id: "B", text: "nebezpečí napadení zvířetem či obtížným hmyzem", correct: false },
+{ id: "C", text: "nebezpečí pádu do neznámého prostředí, nebezpečí úrazu el. Proudem", correct: false }
+]},
+{ id: 49, question: "PTP45 Při hašení požáru budov zdravotnických zařízení spočívá u malých požárů základní taktika", answers: [
+{ id: "A", text: "v rychlém požárním útoku na ohnisko požáru s cílem rychlého uhašení a odvětrání místa zásahu, aby se předešlo nutnosti evakuace velkého množství pacientů ohrožených zplodinami hoření", correct: true },
+{ id: "B", text: "v rychlém provedení evidence osob, které by evidentně mohly být ohroženy požárem a jeho zplodinami", correct: false },
+{ id: "C", text: "v rychlém průzkumu únikových cest s cílem odvětrání", correct: false }
+]},
+{ id: 50, question: "PTP46 Při zásahu", answers: [
+{ id: "A", text: "má záchrana osob přednost před záchranou zvířat a majetku", correct: true },
+{ id: "B", text: "nemá záchrana osob přednost před záchranou zvířat a majetku", correct: false },
+{ id: "C", text: "záchranu neprovádíme", correct: false }
+]},
+{ id: 51, question: "PTP46 U koní, krav, býků a skotu musíme dávat obzvláště pozor na", answers: [
+{ id: "A", text: "přitlačení ke zdi nebo ke konstrukci", correct: true },
+{ id: "B", text: "pokousání", correct: false },
+{ id: "C", text: "pozor si dávat nemusíme", correct: false }
+]},
+{ id: 52, question: "PTP51 Která charakteristická nebezpečí lze očekávat na místě zásahu při hašení požárů s přítomností tlakových láhví s acetylénem", answers: [
+{ id: "A", text: "nebezpečí fyzikálního výbuchu a explozivního hoření", correct: true },
+{ id: "B", text: "nebezpečí infekce", correct: false },
+{ id: "C", text: "nebezpečí úrazu el. Proudem", correct: false }
+]},
+{ id: 53, question: "PTP52 Při požárech hořlavých prachů", answers: [
+{ id: "A", text: "je směs hořlavého plynu s hořlavým prachem náchylnější k výbuchu", correct: true },
+{ id: "B", text: "jsou vhodné hasební látky práškové nebo plynové hasicí přístroje (CO2), nebo voda v podobě kompaktního proudu", correct: false },
+{ id: "C", text: "nasazení přetlakového ventilátoru nemůže nebezpečně zvířit usazený hořlavý prach", correct: false }
+]},
+{ id: 54, question: "PTP52 Usazený prach může být rozvířen", answers: [
+{ id: "A", text: "např. Proudem vzduchu, hasební vodou, otřesy", correct: true },
+{ id: "B", text: "pouze proudem vzduchu", correct: false },
+{ id: "C", text: "proudem vzduchu, nebo otřesy, v žádném případě nemůže být rozvířen hasební vodou", correct: false }
+]},
+{ id: 55, question: "PTP53 Čím je charakterizován požár na pile a ve skladě dřeva", answers: [
+{ id: "A", text: "velkým rozsahem požáru spojeným se silným prouděním plynů, které je schopné unášet velké kusy hořících materiálů a tím způsobit nová ohniska požáru i ve velké vzdálenosti od místa požáru", correct: true },
+{ id: "B", text: "snadným přístupem k ohnisku požáru", correct: false },
+{ id: "C", text: "uložením velkého množství nebezpečných látek", correct: false }
+]},
+{ id: 56, question: "PTP53 Při požáru na pile a ve skladě dřeva je průzkumem potřeba zjistit", answers: [
+{ id: "A", text: "možnosti zabezpečení požární vody (hydranty, požární nádrže, dálková doprava vody)", correct: true },
+{ id: "B", text: "druh uloženého dřeva", correct: false },
+{ id: "C", text: "stáří a délka uloženého dřeva", correct: false }
+]},
+{ id: 57, question: "PTP54 Požáry tuhých paliv vzniklé samovznícením se vyznačují tím, že", answers: [
+{ id: "A", text: "oheň se šíří uvnitř hromad ve výši asi jedné třetiny naskladněné výšky", correct: true },
+{ id: "B", text: "je charakteristické šíření požáru po povrchu proti směru větru doprovázené bezplamenným hořením", correct: false },
+{ id: "C", text: "při jejich hoření se vyvíjí značné množství kouře z dokonalého hoření s obsahem oxidu uhličitého", correct: false }
+]},
+{ id: 58, question: "PTP54 Při hašení požárů tuhých paliv mimo obvyklých úkolů je třeba", answers: [
+{ id: "A", text: "hasit hořící hromady roztříštěnými vodními proudy, zkrápět podle potřeby", correct: true },
+{ id: "B", text: "přijímat opatření k omezení množství odtékající hasební vody není nutné", correct: false },
+{ id: "C", text: "zásah vést ze závětrné strany", correct: false }
+]},
+{ id: 59, question: "PTP56 Hlavní nebezpečí při požárech v zábavních podnicích (diskotékách)", answers: [
+{ id: "A", text: "ztráta orientace", correct: true },
+{ id: "B", text: "pád z výšky", correct: false },
+{ id: "C", text: "utonutí", correct: false }
+]},
+{ id: 60, question: "PTP56 Postup jednotek PO při požáru v zábavních podnicích (diskotékách)", answers: [
+{ id: "A", text: "organizovat průzkum uvnitř budovy, pokud možno více průzkumnými skupinami, zaměřený na vyhledávání ohrožených osob a označit místa, kde byl proveden průzkum", correct: true },
+{ id: "B", text: "povolat na místo řídícího důstojníka", correct: false },
+{ id: "C", text: "vyčkat na příjezd PČR", correct: false }
+]},
+{ id: 61, question: "PTP59 Požáry hořlavých kapalin jsou mimo jiné charakteristické", answers: [
+{ id: "A", text: "vysokou rychlostí šíření požáru a velkou intenzitou hoření a vývinu tepla", correct: true },
+{ id: "B", text: "intenzivní výměnou plynů bez uvolňování zplodin hoření", correct: false },
+{ id: "C", text: "velkou intenzitou hoření, ale nízkou rychlostí šíření požáru", correct: false }
+]},
+{ id: 62, question: "PTP61 Požáry tržnic jsou charakteristické", answers: [
+{ id: "A", text: "značným množstvím soustředěného hořlavého zboží, vysokou intenzitou hoření, nebezpečím výbuchu propan-butanových lahví a zábavní pyrotechniky", correct: true },
+{ id: "B", text: "malým množstvím soustředěného hořlavého zboží, nízkou intenzitou hoření, nebezpečím výbuchu propan-butanových lahví", correct: false },
+{ id: "C", text: "značným množstvím soustředěného nehořlavého zboží, vysokou intenzitou hoření", correct: false }
+]},
+{ id: 63, question: "PTP61 Při průzkumu je nutné mimo obvyklých úkolů dále zjistit", answers: [
+{ id: "A", text: "zda se v ohroženém prostoru tržnice nachází osoby, zda není v místě zásahu zvlášť hořlavý a nebezpečný materiál, přítomnost tlakových lahví a zvolit jejich ochlazování nebo evakuaci", correct: true },
+{ id: "B", text: "zda se v ohroženém prostoru tržnice nachází osoby, přítomnost tlakových lahví a zvolit jejich ohřívání nebo evakuaci", correct: false },
+{ id: "C", text: "zda se v ohroženém prostoru tržnice nachází osoby, zda není v místě zásahu zvlášť nehořlavý a bezpečný materiál, přítomnost tlakových lahví", correct: false }
+]},
+{ id: 64, question: "PTP62 Jaká nebezpečná látka se bude pravděpodobně vyskytovat v budovách s mrazírenským zařízením", answers: [
+{ id: "A", text: "čpavek", correct: true },
+{ id: "B", text: "chlorovodík", correct: false },
+{ id: "C", text: "kyanovodík", correct: false }
+]},
+{ id: 65, question: "PTP62 Jaký je doporučený postup hašení izolace mrazírenských zařízení", answers: [
+{ id: "A", text: "hašení pomocí prostředků pro zvýšení hasební účinnosti vody a vytváření proluk otvíráním konstrukcí", correct: true },
+{ id: "B", text: "hašení pomocí plynného hasiva", correct: false },
+{ id: "C", text: "hašení pomocí práškových hasiv", correct: false }
+]},
+{ id: 66, question: "PTP65 Jakou barvou má být označena tlaková lahev obsahující acetylén podle ČSN EN 1089-3", answers: [
+{ id: "A", text: "kaštanovou", correct: true },
+{ id: "B", text: "bílou", correct: false },
+{ id: "C", text: "šedou", correct: false }
+]},
+{ id: 67, question: "PTP65 Který způsob skladování plynu v tlakových lahvích je z hlediska nebezpečí výbuchu při požáru nejnebezpečnější", answers: [
+{ id: "A", text: "rozpuštěný plyn (acetylén)", correct: true },
+{ id: "B", text: "stlačený plyn (kyslík)", correct: false },
+{ id: "C", text: "zkapalněný plyn (oxid uhličitý)", correct: false }
+]},
+{ id: 68, question: "PTP66 Jaká je hlavní složka zemního plynu", answers: [
+{ id: "A", text: "metan", correct: true },
+{ id: "B", text: "etan", correct: false },
+{ id: "C", text: "propan - butan", correct: false }
+]},
+{ id: 69, question: "PTP66 Jaké okolnosti výrazně komplikují komunikaci v místě úniku zemního plynu z vysokotlakého potrubí", answers: [
+{ id: "A", text: "značný hluk unikajícího média (až 120 db)", correct: true },
+{ id: "B", text: "svévolné výjezdy jednotek", correct: false },
+{ id: "C", text: "vysoký sloup plamene", correct: false }
+]},
+{ id: 70, question: "PTP67 Jakou má hustotu zemní plyn vzhledem k hustotě vzduchu", answers: [
+{ id: "A", text: "menší než vzduch", correct: true },
+{ id: "B", text: "přibližně stejnou jako vzduch", correct: false },
+{ id: "C", text: "vyšší než vzduch", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

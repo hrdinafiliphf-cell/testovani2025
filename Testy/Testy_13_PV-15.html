@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "PV02 Konkrétní hasič v tvaru nebo mimo něj se oslovuje", answers: [
+{ id: "A", text: "hodností a jménem, popř. Jen jménem nebo hodností", correct: true },
+{ id: "B", text: "evidenčním číslem", correct: false },
+{ id: "C", text: "funkčním zařazením", correct: false }
+]},
+{ id: 2, question: "PV05 Nástupovým tvarem družstva může být", answers: [
+{ id: "A", text: "řad nebo dvojřad", correct: true },
+{ id: "B", text: "dvoustup, trojstup čtyřstup", correct: false },
+{ id: "C", text: "řad, dvojřad, trojřad, čtyřřad", correct: false }
+]},
+{ id: 3, question: "PV06 „Rozchod“ se z pochodového tvaru", answers: [
+{ id: "A", text: "nevelí", correct: true },
+{ id: "B", text: "velí na povel „Rozchod“", correct: false },
+{ id: "C", text: "velí na povel „Volno“", correct: false }
+]},
+{ id: 4, question: "PV07 Nástupovým tvarem čety je", answers: [
+{ id: "A", text: "řad, dvojřad, trojřad (podle počtu družstev v četě)", correct: true },
+{ id: "B", text: "pouze dvojřad", correct: false },
+{ id: "C", text: "zástup, dvojstup, trojstup", correct: false }
+]},
+{ id: 5, question: "PV11 Úkoly hasiče před nástupem a v tvaru", answers: [
+{ id: "A", text: "v tvaru bez svolení velitele nemluvit a zachovávat klid, sledovat velitele a jeho povely, rychle a přesně je vykonávat a nepřekážet ostatním", correct: true },
+{ id: "B", text: "sledovat velitele a jeho povely, rychle a přesně je vykonávat a překážet ostatním nemusí", correct: false },
+{ id: "C", text: "v tvaru bez svolení velitele se mluvit smí, ale musí se zachovávat klid a nemusí sledovat velitele a jeho povely", correct: false }
+]},
+{ id: 6, question: "PV12 Při svislém umístění státní vlajky je při čelním pohledu na objekt, na němž je státní vlajka umístěna", answers: [
+{ id: "A", text: "bílá barva vždy vlevo a modry klín směřuje vždy dolů", correct: true },
+{ id: "B", text: "bílá barva vždy vpravo a modry klín směřuje vždy dolů", correct: false },
+{ id: "C", text: "bílá barva vždy vpravo a modry klín směřuje vždy nahoru", correct: false }
+]},
+{ id: 7, question: "PV13 Ke vzdávání pocty při odhalování pomníků a památníků, při pohřbech, odhalování pamětních desek, pietních aktech", answers: [
+{ id: "A", text: "se určuje čestná jednotka", correct: true },
+{ id: "B", text: "se určuje čestná skupina", correct: false },
+{ id: "C", text: "se určuje čestná stráž", correct: false }
+]},
+{ id: 8, question: "PV14 Pokud se slavnostní přehlídky zúčastní požární technika", answers: [
+{ id: "A", text: "řadí se tato vlevo od nastoupených jednotek nebo za ně.", correct: true },
+{ id: "B", text: "řadí se vpravo", correct: false },
+{ id: "C", text: "řadí se vpředu", correct: false }
+]},
+{ id: 9, question: "PV15 Místo nástupu k soutěži určí", answers: [
+{ id: "A", text: "velitel soutěže", correct: true },
+{ id: "B", text: "vedoucí rozhodčích", correct: false },
+{ id: "C", text: "velitelé družstev po vzájemné domluvě", correct: false }
+]},
+{ id: 10, question: "PV16 Řad", answers: [
+{ id: "A", text: "je tvar, v němž hasiči stojí vedle sebe na stejné úrovni.", correct: true },
+{ id: "B", text: "je pochodový tvar, v němž jsou hasiči seřazeni v zákrytu za sebou.", correct: false },
+{ id: "C", text: "je tvar, který tvoří řady za sebou na vzdálenost předpažení.", correct: false }
+]},
+{ id: 11, question: "PV17 Při povelu POHOV!", answers: [
+{ id: "A", text: "hasič zůstává na svém místě", correct: true },
+{ id: "B", text: "hasič může odejít z tvaru", correct: false },
+{ id: "C", text: "hasič může odejít z tvaru a bavit se", correct: false }
+]},
+{ id: 12, question: "PV18 Pořadový krok se užívá", answers: [
+{ id: "A", text: "při vypochodovaní z tvaru, při vzdávání pocty za pochodu, při příchodu k nadřízenému a při pořadovém výcviku za pohybu po povelu „POZOR“", correct: true },
+{ id: "B", text: "jen při vypochodování z tvaru", correct: false },
+{ id: "C", text: "při vypochodovaní z tvaru, při vzdávání pocty za pochodu, při příchodu k nadřízenému a při vstupu do jídelny", correct: false }
+]},
+{ id: 13, question: "PV19 V tvaru zdraví rukou", answers: [
+{ id: "A", text: "jen velitel tvaru", correct: true },
+{ id: "B", text: "jen hasiči s nižší hodností než velitel tvaru", correct: false },
+{ id: "C", text: "všichni hasiči stojící v první řadě", correct: false }
+]},
+{ id: 14, question: "PV20 Hasiči a jednotka PO vzdávají poctu mimo jiné i", answers: [
+{ id: "A", text: "státní vlajce, standartě prezidenta, státní hymně", correct: true },
+{ id: "B", text: "svatebnímu průvodu", correct: false },
+{ id: "C", text: "vozidlu ministra vnitra", correct: false }
+]},
+{ id: 15, question: "PV21 Do služební místnosti vstupuje příslušník", answers: [
+{ id: "A", text: "vždy bez pokrývky hlavy /mimo zásah/", correct: true },
+{ id: "B", text: "jen pokud je místnost otevřená", correct: false },
+{ id: "C", text: "vždy s nejbližším přímým nadřízeným", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>

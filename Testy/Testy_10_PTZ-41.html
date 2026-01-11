@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "PTZ 39 Odjezd z místa zásahu", answers: [
+{ id: "A", text: "hlásí velitel jednotky příslušnému operačnímu a informačnímu středisku", correct: true },
+{ id: "B", text: "hlásí strojník jednotky veliteli zásahu", correct: false },
+{ id: "C", text: "hlásí velitel sektoru veliteli úseku", correct: false }
+]},
+{ id: 2, question: "PTZ05 Příjezd na místo zásahu", answers: [
+{ id: "A", text: "je činnost, jejíž cílem je zaujetí optimálního postavení sil a prostředků jednotky s ohledem na její bezpečnost a další předpokládané nasazení v souladu s doporučenými taktickými postupy", correct: true },
+{ id: "B", text: "je časový úsek od výjezdu jednotky po ustavení techniky na místě zásahu", correct: false },
+{ id: "C", text: "je činnost, jejíž cílem je zaujetí co nejbližšího postavení sil a prostředků k ohnisku požáru", correct: false }
+]},
+{ id: 3, question: "PTZ07 Kdo může rozhodnout o nedodržení technických podmínek požární techniky a věcných prostředků, jestliže hrozí nebezpečí z prodlení při záchraně života osob", answers: [
+{ id: "A", text: "velitel zásahu", correct: true },
+{ id: "B", text: "kdokoliv", correct: false },
+{ id: "C", text: "policista", correct: false }
+]},
+{ id: 4, question: "PTZ07 Kdo rozhoduje o zahájení a ukončení činnosti k záchraně osob", answers: [
+{ id: "A", text: "velitel zásahu a v případě nebezpečí z prodlení mohou o způsobu záchrany osob rozhodnout hasiči provádějící záchranné práce, členové průzkumné skupiny apod.", correct: true },
+{ id: "B", text: "kdokoliv", correct: false },
+{ id: "C", text: "příslušník Policie ČR", correct: false }
+]},
+{ id: 5, question: "PTZ09 Při záchraně majetku je důležité", answers: [
+{ id: "A", text: "určit místo, kam bude materiál vynášen, zajistit jeho ostrahu, popř. I soupis cenného materiálu", correct: true },
+{ id: "B", text: "zachraňovat majetek jen z pásma zakouření", correct: false },
+{ id: "C", text: "zachraňovat majetek jen z požárem zasaženého prostoru", correct: false }
+]},
+{ id: 6, question: "PTZ09 Záchranou majetku se rozumí", answers: [
+{ id: "A", text: "evakuace materiálu z dosahu bezprostředního ohrožení požárem, z dosahu účinků živelní pohromy nebo jiné mimořádné události", correct: true },
+{ id: "B", text: "odstranění materiálu, který jen překáží při likvidaci požáru", correct: false },
+{ id: "C", text: "ostraha materiálu jen v bezprostředním ohrožení požárem", correct: false }
+]},
+{ id: 7, question: "PTZ13 Při vyslání a přesunu jednotky nebo odřadu na velké vzdálenosti velitel jednotky", answers: [
+{ id: "A", text: "zkontroluje sap na místě soustředění, poučí podřízené velitele, poučí strojníky a řidiče, odpovídá za dodržování trasy přesunu, spojení s jednotlivými HSZ krajů na trase, informuje vysílajícího o poruše nebo nehodě, změně trasy", correct: true },
+{ id: "B", text: "zkontroluje sap na místě soustředění, poučí podřízené velitele, odpovídá za dodržování trasy přesunu, spojení s jednotlivými HSZ krajů na trase, informuje vysílajícího o poruše nebo nehodě, změně trasy", correct: false },
+{ id: "C", text: "zkontroluje sap na místě soustředění, poučí podřízené velitele, poučí strojníky a řidiče, odpovídá za dodržování trasy přesunu, udržovat spojení s jednotlivými HSZ krajů na trase nemusí", correct: false }
+]},
+{ id: 8, question: "PTZ19 Hasiči na místě zásahu", answers: [
+{ id: "A", text: "plní rozkazy a pokyny příslušných velitelů", correct: true },
+{ id: "B", text: "nemusí plnit rozkazy velitelů", correct: false },
+{ id: "C", text: "plní jen rozkazy řídícího důstojníka", correct: false }
+]},
+{ id: 9, question: "PTZ19 Při plnění služebních úkolů prokazuje příslušník příslušnost k hasičskému záchrannému sboru mimo jiné", answers: [
+{ id: "A", text: "služebním průkazem", correct: true },
+{ id: "B", text: "nasazenou ochrannou přilbou", correct: false },
+{ id: "C", text: "přítomností příslušníka Policie ČR", correct: false }
+]},
+{ id: 10, question: "PTZ20 Nebezpečná zóna je", answers: [
+{ id: "A", text: "vymezený prostor bezprostředního ohrožení života a zdraví účinky MÚ", correct: true },
+{ id: "B", text: "prostor pro soustředění sil a prostředků", correct: false },
+{ id: "C", text: "prostor vymezený pro vedení zásahu", correct: false }
+]},
+{ id: 11, question: "PTZ20 Organizaci místa zásahu stanoví", answers: [
+{ id: "A", text: "velitel zásahu", correct: true },
+{ id: "B", text: "PČR", correct: false },
+{ id: "C", text: "řídící důstojník", correct: false }
+]},
+{ id: 12, question: "PTZ22 Spojení na místě zásahu organizuje", answers: [
+{ id: "A", text: "velitel zásahu", correct: true },
+{ id: "B", text: "spojař", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 13, question: "PTZ22 Základními prostředky pro přenos informací jsou", answers: [
+{ id: "A", text: "spojové prostředky", correct: true },
+{ id: "B", text: "informátoři", correct: false },
+{ id: "C", text: "media", correct: false }
+]},
+{ id: 14, question: "PTZ23 O uzavření místa zásahu rozhoduje", answers: [
+{ id: "A", text: "velitel zásahu", correct: true },
+{ id: "B", text: "majitel pozemku", correct: false },
+{ id: "C", text: "právnická osoba", correct: false }
+]},
+{ id: 15, question: "PTZ24 Kdo předává informace zástupcům sdělovacích prostředků", answers: [
+{ id: "A", text: "pověřená osoba pro styk se sdělovacími prostředky (zpravidla tiskový mluvčí, náčelník štábu, řídící důstojník nebo operační důstojník)", correct: true },
+{ id: "B", text: "každý hasič u zásahu", correct: false },
+{ id: "C", text: "velitel JSDH obce, ve které se zasahuje", correct: false }
+]},
+{ id: 16, question: "PTZ26 Dokumentace zdolávání požárů tvoří", answers: [
+{ id: "A", text: "operativní plán a operativní karty", correct: true },
+{ id: "B", text: "havarijní plán a evakuační plán", correct: false },
+{ id: "C", text: "požární poplachový plán a předurčenosti JPO", correct: false }
+]},
+{ id: 17, question: "PTZ27 Kdo absolvuje kondiční jízdy", answers: [
+{ id: "A", text: "hasiči zařazení na funkci strojník", correct: true },
+{ id: "B", text: "velitelé čety a družstva", correct: false },
+{ id: "C", text: "všichni hasiči směny", correct: false }
+]},
+{ id: 18, question: "PTZ27 Kterým vozidlem se provádí kondiční jízdy", answers: [
+{ id: "A", text: "zásahovými vozidly ÚO", correct: true },
+{ id: "B", text: "osobními vozidly ÚO", correct: false },
+{ id: "C", text: "soukromými vozidly", correct: false }
+]},
+{ id: 19, question: "PTZ28 Pokyny stanovené pro řízení dopravy pro policisty", answers: [
+{ id: "A", text: "využívá příslušník HZS ČR k řízení dopravy", correct: true },
+{ id: "B", text: "příslušník HZS ČR nevyužívá, vymyslí si své vlastní", correct: false },
+{ id: "C", text: "využívá pokynu stanovené HZS ČR k řízení dopravy", correct: false }
+]},
+{ id: 20, question: "PTZ28 Usměrňování provozu na pozemních komunikacích je příslušníkem HZS ČR prováděno", answers: [
+{ id: "A", text: "ve služebním stejnokroji s označením příslušnosti k Hasičskému záchrannému sboru ČR", correct: true },
+{ id: "B", text: "PS-I, slavnostní bílá košile, šňůry", correct: false },
+{ id: "C", text: "PS-II, triko, nazouváky, čepici mít nemusí", correct: false }
+]},
+{ id: 21, question: "PTZ29 Znemožní-li dopravu jednotky na místo zásahu porucha, nehoda, nesjízdnost komunikace nebo jiné závažné okolnosti, oznámí tuto skutečnost příslušnému operačnímu středisku:", answers: [
+{ id: "A", text: "velitel jednotky", correct: true },
+{ id: "B", text: "hasič", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 22, question: "PTZ30 Přijetí zprávy o události", answers: [
+{ id: "A", text: "je činnost sloužící k přijetí zprávy o požáru, živelní pohromě nebo jiné mimořádné události a její zpracování tak, aby mohla být předána jednotce PO pro uskutečnění zásahu", correct: true },
+{ id: "B", text: "je možno provést dle uvážení obsluhy ohlašovny požáru", correct: false },
+{ id: "C", text: "je možno provést pouze za souhlasu služebního funkcionáře", correct: false }
+]},
+{ id: 23, question: "PTZ31 Vyhlášení poplachu jednotce", answers: [
+{ id: "A", text: "je činnost, jejímž cílem je vyrozumět jednotku určenou pro zásah a předat ji informace o události", correct: true },
+{ id: "B", text: "je možné pouze s ohledem na technický stav požární techniky", correct: false },
+{ id: "C", text: "je možné pouze za souhlasu řídícího důstojníka", correct: false }
+]},
+{ id: 24, question: "PTZ31 Vyhlášení poplachu jednotce následuje", answers: [
+{ id: "A", text: "po přijetí zprávy o události ohlašovnou požárů nebo operačním střediskem, pokud tato zpráva vyvolá nutnost zásahu jednotky", correct: true },
+{ id: "B", text: "po uvedení požární techniky do akceschopného stavu", correct: false },
+{ id: "C", text: "po vydání přímého rozkazu služebním funkcionářem", correct: false }
+]},
+{ id: 25, question: "PTZ32 Kdo vysílá jednotky k výjezdu", answers: [
+{ id: "A", text: "operační středisko, zřízené pro území, kde má být zásah uskutečněn nebo operační středisko jen se souhlasem MV- GŘ HZS ČR", correct: true },
+{ id: "B", text: "řídicí důstojník, popřípadě velitel stanice", correct: false },
+{ id: "C", text: "starosta obce příslušné místní jednotky", correct: false }
+]},
+{ id: 26, question: "PTZ32 Při vyhlášení poplachu vyjíždějí z místa své dislokace nejpozději do", answers: [
+{ id: "A", text: "2 minut jednotky složené výlučně z hasičů z povolání", correct: true },
+{ id: "B", text: "2 minut jednotky Hasičského záchranného sboru kraje zřízené na stanici typu P5", correct: false },
+{ id: "C", text: "5 minut jednotky složené výlučně z hasičů z povolání", correct: false }
+]},
+{ id: 27, question: "PTZ33 Na místě zásahu provádí průzkum", answers: [
+{ id: "A", text: "velitel zásahu a nejméně 1 hasič, průzkumná skupina, kterou tvoří nejméně 2 hasiči, celá jednotka", correct: true },
+{ id: "B", text: "průzkumná skupina, kterou tvoří nejméně 1 hasič", correct: false },
+{ id: "C", text: "velitel stanice a lezec", correct: false }
+]},
+{ id: 28, question: "PTZ33 Průzkum je", answers: [
+{ id: "A", text: "činnost, kterou se zjišťují poznatky o situaci potřebné pro rozhodování o způsobu vedení zásahu", correct: true },
+{ id: "B", text: "činnost, kterou velitel zásahu zajišťuje dovoz stravy na místo zásahu", correct: false },
+{ id: "C", text: "taková činnost, při které jsou zjištěné poznatky velitel stanice prezentovány médiím", correct: false }
+]},
+{ id: 29, question: "PTZ36 Kdo kontroluje úplnost a uložení věcných prostředků na vozidle", answers: [
+{ id: "A", text: "strojník", correct: true },
+{ id: "B", text: "hasič", correct: false },
+{ id: "C", text: "velitel jednotky", correct: false }
+]},
+{ id: 30, question: "PTZ36 O použití výstražného zařízení při jízdě z místa zásahu rozhoduje", answers: [
+{ id: "A", text: "velitel jednotky", correct: true },
+{ id: "B", text: "kdokoliv", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 31, question: "PTZ37 Doplnění chybějící výstroje, provedení oprav, očisty požární techniky zajišťuje", answers: [
+{ id: "A", text: "velitel jednotky", correct: true },
+{ id: "B", text: "hasiči", correct: false },
+{ id: "C", text: "strojník", correct: false }
+]},
+{ id: 32, question: "PTZ37 Uvedení jednotky do akceschopnosti po příjezdu z místa zásahu je výkonem služby v", answers: [
+{ id: "A", text: "organizačním řízení", correct: true },
+{ id: "B", text: "operačním řízení", correct: false },
+{ id: "C", text: "strategickém řízení", correct: false }
+]},
+{ id: 33, question: "PTZ38 Kdo určuje k výkonu funkce náčelníka a členy štábu, velitele sektorů a úseků", answers: [
+{ id: "A", text: "velitel zásahu", correct: true },
+{ id: "B", text: "příslušné operační středisko HZS kraje", correct: false },
+{ id: "C", text: "starosta obce", correct: false }
+]},
+{ id: 34, question: "PTZ38 Velitel jednotky je na místě zásahu podřízen", answers: [
+{ id: "A", text: "veliteli úseku, pokud úsek není zřízen, je podřízen veliteli zásahu", correct: true },
+{ id: "B", text: "Policii ČR", correct: false },
+{ id: "C", text: "příslušnému operačnímu středisku HZS kraje", correct: false }
+]},
+{ id: 35, question: "PTZ39 Velitel zásahu je při řízení zásahu označen", answers: [
+{ id: "A", text: "vestou s nápisem „velitel zásahu“ nebo červenou páskou „VZ“ na levé paži", correct: true },
+{ id: "B", text: "není označen", correct: false },
+{ id: "C", text: "vestou s nápisem „velitel jednotek“", correct: false }
+]},
+{ id: 36, question: "PTZ40 Úsek týlu (T) plní zejména uvedené úkoly", answers: [
+{ id: "A", text: "zabezpečuje plynulou a nepřerušovanou dodávku hasebních látek, pečuje o jednotky vyčleněné pro odpočinek, zajišťuje ochranné nápoje, stravu a ubytování.", correct: true },
+{ id: "B", text: "zabezpečuje spojení velitelem zásahu s operačním a informačním střediskem, mezi zasahujícími jednotkami a dalšími složkami IZS", correct: false },
+{ id: "C", text: "zpracovává návrhy na řízení zásahu a organizaci místa zásahu (určení úseků, nebezpečných zón, stanovišť)", correct: false }
+]},
+{ id: 37, question: "PTZ41 Kdy může velitel zásahu rozhodnout o zřízení úseků", answers: [
+{ id: "A", text: "při soustředění většího množství sil a prostředků a při organizačně složitém nebo rozsáhlém zásahu anebo při zásahu v rámci integrovaného záchranného systému", correct: true },
+{ id: "B", text: "pouze u rozsáhlého požáru", correct: false },
+{ id: "C", text: "při každém společném zásahu více jak jedné složky IZS", correct: false }
+]},
+{ id: 38, question: "PTZ41 Velitel úseku je při zásahu podřízen", answers: [
+{ id: "A", text: "veliteli zásahu nebo veliteli sektoru, pokud byl sektor zřízen", correct: true },
+{ id: "B", text: "složce IZS, která má právo přednostního velení", correct: false },
+{ id: "C", text: "veliteli příslušné jednotky, která byla na místě zásahu jako první", correct: false }
+]},
+{ id: 39, question: "PTZ42 Velitel jednotky", answers: [
+{ id: "A", text: "řídí zásah jednotky a odpovídá za její činnost", correct: true },
+{ id: "B", text: "je příslušník PČR", correct: false },
+{ id: "C", text: "neřídí zásah jednotky a neodpovídá za její činnost", correct: false }
+]},
+{ id: 40, question: "PTZ42 Velitel jednotky je na místě zásahu podřízen", answers: [
+{ id: "A", text: "veliteli úseku, pokud úsek není zřízen, je podřízen veliteli zásahu", correct: true },
+{ id: "B", text: "lékaři ZZS", correct: false },
+{ id: "C", text: "Policii ČR", correct: false }
+]},
+{ id: 41, question: "PTZ44 Hranice nebezpečné zóny od látek schopných výbuchu je", answers: [
+{ id: "A", text: "30m", correct: true },
+{ id: "B", text: "15m", correct: false },
+{ id: "C", text: "20m", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+    if (e.target.classList.contains("answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    shuffle(q.answers).forEach(a => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = a.text;
+
+       div.onclick = () => {
+    if (answeredThisQuestion) return;  // blokuje vícenásobné kliky
+    answeredThisQuestion = true;       // hned po prvním kliknutí zamkne
+    if (waitingForClick) return;
+
+    document.querySelectorAll(".answer").forEach(el => {
+        const ansObj = q.answers.find(x => x.text === el.innerText);
+        el.classList.add(ansObj.correct ? "correct" : "wrong");
+    });
+
+    if (a.correct) {
+        stats.correct++;
+        unanswered.splice(currentIndex, 1);
+
+        updateStats();
+        setTimeout(showQuestion, 1000); // správně → automaticky
+    } else {
+        stats.wrong++;
+        waitingForClick = true;
+
+        document.getElementById("hint").innerText =
+            "❌ Špatně – klikni kamkoliv pro pokračování";
+
+        wrongQuestions.push({
+            question: q.question,
+            correctAnswer: q.answers.find(x => x.correct).text,
+            userAnswer: a.text
+        });
+
+        updateStats();
+    }
+};
+
+        answersDiv.appendChild(div);
+    });
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>
