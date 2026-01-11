@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testy</title>
+
+<style>
+body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+#app { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+.answer { padding: 12px; margin: 8px 0; border-radius: 6px; background: #e0e0e0; cursor: pointer; }
+.answer.correct { background: #7dd87d; }
+.answer.wrong { background: #f27c7c; }
+.answer-image {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    margin-top: 8px;
+}
+#stats { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <h2 id="question"></h2>
+    <img id="questionImage" style="max-width:100%; display:none; margin:10px 0;">
+    <div id="answers"></div>
+    <p id="hint">Klikni na odpověď</p>
+    <div id="stats"></div>
+   <!-- Tlačítko zpět na výběr testu -->
+    <a href="../index.html" 
+       style="
+         display: inline-block;
+         margin-top: 20px;
+         background: #f44336;
+         color: white;
+         padding: 10px 20px;
+         border-radius: 8px;
+         text-decoration: none;
+         font-weight: bold;
+       ">
+       ← Zpět na výběr testu
+    </a>
+</div>
+
+<script>
+let waitingForClick = false;
+let answeredThisQuestion = false; // <--- nová proměnná
+let questions = [
+{ id: 1, question: "ZN číslo 3 v této značce znamená", questionImage: "images/ADR3.png", answers: [
+{ id: "A", text: "Hořlavá kapalina", correct: true },
+{ id: "B", text: "Pevná hořlavá látka", correct: false },
+{ id: "C", text: "Plynná hořlavá látka", correct: false }
+]},
+{ id: 2, question: "ZN Infekční biologické riziko označuje tabulka", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR6,2.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR8.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/CLPZPb.png" }
+]},
+{ id: 3, question: "ZN Infekční biologický odpad je označen", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR6,2i.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR4,2.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR5,1.png" }
+]},
+{ id: 4, question: "ZN Jaké nebezpečí označuje tato tabulka", questionImage: "images/ADR4,2.png", answers: [
+{ id: "A", text: "Samozápalné látky", correct: true },
+{ id: "B", text: "Hořlavé tuhé látky", correct: false },
+{ id: "C", text: "Látky podporující hoření", correct: false }
+]},
+{ id: 5, question: "ZN Která z tabulek označuje hořlavé kapaliny", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR3.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR2,1.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR2,3.png" }
+]},
+{ id: 6, question: "ZN Která z tabulek označuje hořlavé tuhé látky samovolně se rozkládají a znecitlivěné tuhé výbušné látky", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR4,1.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR6,1.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR4,2.png" }
+]},
+{ id: 7, question: "ZN Která z tabulek označuje jedovaté látky", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR6,1.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR3.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR6,2i.png" }
+]},
+{ id: 8, question: "ZN Která z tabulek označuje jedovaté plyny", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR2,3.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR6,2i.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR3.png" }
+]},
+{ id: 9, question: "ZN Která z tabulek označuje látku podporující hoření", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR5,1.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR6,1.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/CLPZPb.png" }
+]},
+{ id: 10, question: "ZN Která z tabulek označuje látky, které ve styku s vodou vyvíjejí hořlavé plyny", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR4,3.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR3.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR2,2a.png" }
+]},
+{ id: 11, question: "ZN Která z tabulek označuje látky ohrožující životní prostředí", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/CLPZPb.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR2,1.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR9.png" }
+]},
+{ id: 12, question: "ZN Která z tabulek označuje látky ohrožující životní prostředí", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/CLPZPb.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR2,3.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR6,2i.png" }
+]},
+{ id: 13, question: "ZN Která z tabulek označuje nehořlavé nejedovaté plyny", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR2,2a.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR2,3.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR2,1.png" }
+]},
+{ id: 14, question: "ZN Která z tabulek označuje radioaktivní látku", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR7D.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR6,1.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/CLPZPb.png" }
+]},
+{ id: 15, question: "ZN Která z tabulek označuje radioaktivní látku v kusech", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR7D.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR4,1.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR6,2.png" }
+]},
+{ id: 16, question: "ZN Která z tabulek označuje různé nebezpečné předměty a látky", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR9.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR6,2.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR2,2a.png" }
+]},
+{ id: 17, question: "ZN Která z tabulek označuje samozápalné látky", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR4,1.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR6,1.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR8.png" }
+]},
+{ id: 18, question: "ZN Která z tabulek označuje v Kemler značení plyn, toxický, oxid siřičitý", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/KK26.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/KK33.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/KK663.png" }
+]},
+{ id: 19, question: "ZN Která z tabulek označuje v Kemler značení plyn, toxický, žíravá látka, chlór", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/KK268.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/KK33.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/KK30.png" }
+]},
+{ id: 20, question: "ZN Která z tabulek označuje výbušné látky a předměty", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR1,4.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR6,2.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR5,1.png" }
+]},
+{ id: 21, question: "ZN Která z tlakových láhví je označena jako technický kyslík", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/TLO2.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/TLvzduch.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/TLN2O.png" }
+]},
+{ id: 22, question: "ZN Obsahem takto barevně označené tlakové láhve je plyn", questionImage: "images/TLdusik.png", answers: [
+{ id: "A", text: "Dusík", correct: true },
+{ id: "B", text: "Acetylén", correct: false },
+{ id: "C", text: "Technický kyslík", correct: false }
+]},
+{ id: 23, question: "ZN Obsahem takto barevně označené tlakové láhve je plyn", questionImage: "images/TLacetylen.png", answers: [
+{ id: "A", text: "Acetylén", correct: true },
+{ id: "B", text: "Argon", correct: false },
+{ id: "C", text: "Dusík", correct: false }
+]},
+{ id: 24, question: "ZN Označení X v Kemler kódu značí", questionImage: "images/KKX333.png", answers: [
+{ id: "A", text: "Látka nesmí přijít do styku s vodou", correct: true },
+{ id: "B", text: "nebezpečí výbuchu", correct: false },
+{ id: "C", text: "Vysoká nebezpečnost toxicity", correct: false }
+]},
+{ id: 25, question: "ZN Při přepravě žíravých látek bude použita tabulka", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR8.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR4,1.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR6,2.png" }
+]},
+{ id: 26, question: "ZN Štěpné látky jsou označeny", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/ADR7E.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/ADR3.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/ADR2,3.png" }
+]},
+{ id: 27, question: "ZN Takto barevně označená tlaková láhev obsahuje", questionImage: "images/TLhorlavasmes.png", answers: [
+{ id: "A", text: "Hořlavá směs", correct: true },
+{ id: "B", text: "Dusík", correct: false },
+{ id: "C", text: "Vodík", correct: false }
+]},
+{ id: 28, question: "ZN Takto barevně označená tlaková láhev obsahuje", questionImage: "images/TLO2.png", answers: [
+{ id: "A", text: "Kyslík", correct: true },
+{ id: "B", text: "Dusík", correct: false },
+{ id: "C", text: "Stlačený vzduch", correct: false }
+]},
+{ id: 29, question: "ZN Tato značka hovoří o látkách, které", questionImage: "images/CLPZ.png", answers: [
+{ id: "A", text: "jsou korozivní pro kovy a způsobují těžké poleptání kůže", correct: true },
+{ id: "B", text: "jsou korozivní pro kovy", correct: false },
+{ id: "C", text: "způsobující poleptání očí a poškození očí", correct: false }
+]},
+{ id: 30, question: "ZN Tato tabulka označuje", questionImage: "images/ADR1,4.png", answers: [
+{ id: "A", text: "Výbušné látky a předměty", correct: true },
+{ id: "B", text: "Nebezpečí pro životní prostředí", correct: false },
+{ id: "C", text: "Toxické látky skupiny 1.4", correct: false }
+]},
+{ id: 31, question: "ZN Tato tabulka označuje", questionImage: "images/ADR5,2.png", answers: [
+{ id: "A", text: "Organické peroxidy č. 5.2", correct: true },
+{ id: "B", text: "Hořlavé látky", correct: false },
+{ id: "C", text: "Neorganické peroxidy", correct: false }
+]},
+{ id: 32, question: "ZN Tato tabulka označuje", questionImage: "images/ADR2,2a.png", answers: [
+{ id: "A", text: "Nehořlavé, nejedovaté plyny", correct: true },
+{ id: "B", text: "Hořlavé plyny", correct: false },
+{ id: "C", text: "Jedovaté plyny", correct: false }
+]},
+{ id: 33, question: "ZN Tato tabulka označuje", questionImage: "images/ADR9.png", answers: [
+{ id: "A", text: "Jiné nebezpečné látky a předměty", correct: true },
+{ id: "B", text: "Organické peroxidy", correct: false },
+{ id: "C", text: "Radioaktivní látky", correct: false }
+]},
+{ id: 34, question: "ZN Tato tabulka označuje", questionImage: "images/ADR4,1.png", answers: [
+{ id: "A", text: "hořlavé tuhé látky, samovolně se rozkládající a znecitlivěné výbušné tuhé látky", correct: true },
+{ id: "B", text: "Hořlavé kapalné látky", correct: false },
+{ id: "C", text: "Radioaktivní látky", correct: false }
+]},
+{ id: 35, question: "ZN Tato tabulka označuje", questionImage: "images/CLPZPb.png", answers: [
+{ id: "A", text: "Látky ohrožující životní prostředí", correct: true },
+{ id: "B", text: "Látky ohrožující životní prostředí pro zvířata a zvěř", correct: false },
+{ id: "C", text: "Látky radioaktivní", correct: false }
+]},
+{ id: 36, question: "ZN Tato tabulka označuje hořlavou kapalinou", questionImage: "images/KK30.png", answers: [
+{ id: "A", text: "Naftu", correct: true },
+{ id: "B", text: "Alkohol", correct: false },
+{ id: "C", text: "Benzín", correct: false }
+]},
+{ id: 37, question: "ZN Tato značka na obale výrobku varuje před", questionImage: "images/CLPPZ.png", answers: [
+{ id: "A", text: "vysokým nebezpečím na zdraví - látka poškozuje orgány, může vyvolat genetické poškození", correct: true },
+{ id: "B", text: "podrážděním dýchacích cest", correct: false },
+{ id: "C", text: "zdravotní škodlivosti při styku s kůží", correct: false }
+]},
+{ id: 38, question: "ZN Tato značka znamená", questionImage: "images/CLPplyn.png", answers: [
+{ id: "A", text: "plyn pod tlakem", correct: true },
+{ id: "B", text: "jedovatý plyn", correct: false },
+{ id: "C", text: "nejedovatý plyn", correct: false }
+]},
+{ id: 39, question: "ZN V takto označené tlakové láhvi je", questionImage: "images/TLvzduch.png", answers: [
+{ id: "A", text: "Stlačený vzduch", correct: true },
+{ id: "B", text: "Stlačený dusík", correct: false },
+{ id: "C", text: "Stlačený vodík", correct: false }
+]},
+{ id: 40, question: "ZN Vyberte značku označující nebezpečí pro životní prostředí v systému CLP (klasifikaci, označování a balení)", answers: [
+{ id: "A", text: ".", correct: true,  answerImage: "images/CLPZP.png" },
+{ id: "B", text: ".", correct: false,  answerImage: "images/CLPZPb.png" },
+{ id: "C", text: ".", correct: false,  answerImage: "images/CLPN.png" }
+]},
+{ id: 41, question: "ZN Zdvojení, zvýšení počtu číslic v horní části Kemler kódu vyjadřuje", questionImage: "images/KKX333.png", answers: [
+{ id: "A", text: "Vysoké nebezpečí hořlavé kapaliny", correct: true },
+{ id: "B", text: "Vysoké nebezpečí hořlavé plyny", correct: false },
+{ id: "C", text: "Vysoké nebezpečí výbušné látky", correct: false }
+  ]}
+];
+
+let unanswered = shuffle([...questions]); // fronta otázek
+let wrongQuestions = []; // špatné odpovědi
+let stats = { correct: 0, wrong: 0 };
+
+showQuestion();
+
+document.getElementById("app").addEventListener("click", (e) => {
+    if (!waitingForClick) return;
+
+    // pokud klik byl na odpověď NEBO její obsah → nic nedělej
+    if (e.target.closest(".answer")) return;
+
+    waitingForClick = false;
+    showQuestion();
+});
+
+function showQuestion() {
+    answeredThisQuestion = false;   // odblokuje kliky pro novou otázku
+    document.getElementById("hint").innerText = "Klikni na odpověď";
+
+    if (unanswered.length === 0) {
+        document.getElementById("question").innerText = "Test dokončen 🎉";
+        document.getElementById("answers").innerHTML = "";
+        updateStats();
+        return;
+    }
+
+    const currentIndex = Math.floor(Math.random() * unanswered.length);
+    const q = unanswered[currentIndex];
+
+    document.getElementById("question").innerText = q.question;
+
+const img = document.getElementById("questionImage");
+
+if (q.questionImage) {
+    img.src = q.questionImage;
+    img.style.display = "block";
+} else {
+    img.style.display = "none";
+}
+
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+shuffle(q.answers).forEach(a => {
+    const div = document.createElement("div");
+    div.className = "answer";
+    div.dataset.correct = a.correct; // ✅ klíčová oprava
+
+    // text odpovědi
+    if (a.text && a.text !== ".") {
+        const textDiv = document.createElement("div");
+        textDiv.innerText = a.text;
+        div.appendChild(textDiv);
+    }
+
+    // obrázek odpovědi
+    if (a.answerImage) {
+        const img = document.createElement("img");
+        img.src = a.answerImage;
+        img.className = "answer-image";
+        div.appendChild(img);
+    }
+
+    div.onclick = () => {
+        if (answeredThisQuestion) return;
+        answeredThisQuestion = true;
+
+        document.querySelectorAll(".answer").forEach(el => {
+            el.classList.add(
+                el.dataset.correct === "true" ? "correct" : "wrong"
+            );
+        });
+
+        if (a.correct) {
+            stats.correct++;
+            unanswered.splice(currentIndex, 1);
+            updateStats();
+            setTimeout(showQuestion, 1000);
+        } else {
+            stats.wrong++;
+            waitingForClick = true;
+            document.getElementById("hint").innerText =
+                "❌ Špatně – klikni kamkoliv pro pokračování";
+            updateStats();
+        }
+    };
+
+    answersDiv.appendChild(div);
+});
+}
+
+function updateStats() {
+    document.getElementById("stats").innerHTML =
+        `✅ Správně: ${stats.correct} | ❌ Špatně: ${stats.wrong}`;
+}
+
+// jednoduché zamíchání pole
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+</script>
+</body>
+</html>
